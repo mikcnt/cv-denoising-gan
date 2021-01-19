@@ -31,11 +31,11 @@ def gaussian_noise(img, amount=0.2, calibration=0.05):
     out = img.copy() / 255
     out = out + noise
     out = np.clip(out, 0, 1)
-    return out
+    return (out * 255).astype(int)
 
 # A class defining the dataset
 class ImageDataset(Dataset):
-    def __init__(self, images_folder: list, g_min = 0.01, g_max = 0.15, p_min = 0.01, p_max = 0.7):
+    def __init__(self, images_folder: list, g_min = 0.01, g_max = 0.10, p_min = 0.3, p_max = 0.75):
         super().__init__()
         files = os.listdir(images_folder)
         self.image_paths = [images_folder + "/" + file for file in files]
@@ -53,18 +53,20 @@ class ImageDataset(Dataset):
         # Load RANDOM clean image into memory...
         image_path = self.image_paths[idx]
         clean_image = cv2.imread(image_path)
-        # Generate the noisy image...
-        noisy_image = gaussian_noise(
-            clean_image,
-            amount = random.uniform(self.g_min, self.g_max)
-        )
+        noisy_image = clean_image
         noisy_image = pepper_noise(
             noisy_image,
             threshold = 0.01,
             amount = random.uniform(self.g_min, self.g_max)
         )
+        noisy_image = gaussian_noise(
+            noisy_image,
+            amount = random.uniform(self.g_min, self.g_max)
+        )
+
+        
         
         return {
-            'x': noisy_image,
-            'y': clean_image
+            'x': cv2.cvtColor(noisy_image, cv2.COLOR_BGR2RGB),
+            'y': cv2.cvtColor(clean_image, cv2.COLOR_BGR2RGB)
         }

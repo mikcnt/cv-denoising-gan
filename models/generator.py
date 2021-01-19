@@ -50,11 +50,7 @@ class Generator(nn.Module):
     def loss(self, adv_loss, y, t):
         pix_loss = self.mce(y, t)
         fea_loss = self.mce(y, t)
-        return 
-            self.k0 * adv_loss +
-            self.k1 * pix_loss +
-            self.k2 * fea_loss +
-            self.k3 * smo_loss
+        return self.k0 * adv_loss + self.k1 * pix_loss + self.k2 * fea_loss + self.k3 * smo_loss
     
 # Test
 gen = Generator(0,0,0,0)
