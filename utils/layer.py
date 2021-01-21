@@ -4,16 +4,15 @@ import torch.nn.functional as F
 
 
 def conv_layer(in_ch, out_ch, kernel, activation=nn.LeakyReLU(), stride=1):
-
+    padding = kernel // 2
     return nn.Sequential(
-        nn.Conv2d(in_ch, out_ch, kernel, stride=stride),
+        nn.Conv2d(in_ch, out_ch, kernel, stride=stride, padding=padding),
         nn.BatchNorm2d(out_ch),
         activation,
     )
 
 
 def res_block(channels, kernel):
-    # TODO: is this an actual residual block?
     return nn.Sequential(
         conv_layer(channels, channels, kernel), conv_layer(channels, channels, kernel)
     )

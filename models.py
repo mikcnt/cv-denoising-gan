@@ -13,7 +13,7 @@ class Discriminator(nn.Module):
         self.conv1 = conv_layer(3, 48, 4, stride=2)
         self.conv2 = conv_layer(48, 96, 4, stride=2)
         self.conv3 = conv_layer(96, 192, 4, stride=2)
-        self.conv4 = conv_layer(129, 384, 4)
+        self.conv4 = conv_layer(192, 384, 4)
         self.conv5 = conv_layer(384, 1, 4, activation=nn.Sigmoid())
 
     def forward(self, x):
@@ -45,7 +45,6 @@ class Generator(nn.Module):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
-
         x += self.res1(x)
         x += self.res2(x)
         x += self.res3(x)

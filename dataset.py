@@ -9,7 +9,7 @@ random.seed(42069)
 
 # Utils
 def pepper_noise(img, threshold=0.1, amount=0.5):
-    h, w, ch = img.shape
+    h, w, _ = img.shape
     img_lab = rgb2lab(img)
     img_l = (
         img_lab[..., 0].reshape(h, w) / 100
@@ -34,7 +34,7 @@ def gaussian_noise(img, amount=0.2, calibration=0.05):
     out = img.copy() / 255
     out = out + noise
     out = np.clip(out, 0, 1)
-    return (out * 255).astype(int)
+    return out.astype(np.float32)
 
 
 # A class defining the dataset
