@@ -26,16 +26,8 @@ class Discriminator(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, k0, k1, k2, k3):
+    def __init__(self):
         super(Generator, self).__init__()
-
-        self.k0 = k0
-        self.k1 = k1
-        self.k2 = k2
-        self.k3 = k3
-
-        self.mse = nn.BCELoss()
-        self.smooth = nn.SmoothL1Loss()
 
         self.conv1 = conv_layer(3, 32, 9)
         self.conv2 = conv_layer(32, 64, 3)
@@ -64,10 +56,6 @@ class Generator(nn.Module):
         return x
 
 
-def disc_loss():
-    pass
-
-
 def shifted(img):
     pad = nn.ZeroPad2d((0, 1, 1, 0))
     return pad(img)[:-1, 1:]
@@ -80,18 +68,25 @@ def vgg_prediction(vgg_model, img):
 
 # k0 * Adversarial loss +
 # k1 * Pixel loss +
-# k2 * Feature loss +
+# feat_loss_factor * Feature loss +
 # k3 * Smooth loss
 class GeneratorLoss(nn.Module):
-    def __init__(self, vgg_model, k0, k1, k2, k3):
+    def __init__(
+        self,
+        vgg_model,
+        disc_loss_factor,
+        pix_loss_factor,
+        feat_loss_factor,
+        smooth_loss_factor,
+    ):
         super(GeneratorLoss, self).__init__()
         self.vgg_model = vgg_model
-        self.k0 = k0
-        self.k1 = k1
-        self.k2 = k2
-        self.k3 = k3
+        self.disc_loss_factor = disc_loss_factor
+        self.pix_loss_factor = pix_loss_factor
+        self.feat_loss_factor = feat_loss_factor
+        self.smooth_loss_factor = smooth_loss_factor
 
-    def forward(self, dg, y, t):
+    def forward(self, disc_loss, y, t):
         mse = nn.MSELoss()
         features = lambda x: vgg_prediction(self.vgg_model, x)
 
@@ -99,5 +94,8 @@ class GeneratorLoss(nn.Module):
         fea_loss = mse(features(y), features(t))
         smo_loss = mse(shifted(y), y)
         return (
-            self.k0 * dg + self.k1 * pix_loss + self.k2 * fea_loss + self.k3 * smo_loss
+            self.disc_loss_factor * disc_loss
+            + self.pix_loss_factor * pix_loss
+            + self.feat_loss_factor * fea_loss
+            + self.smooth_loss_factor * smo_loss
         )
