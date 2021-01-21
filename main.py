@@ -12,7 +12,7 @@ import dataset
 discriminator = Discriminator()
 disc_opt = optim.Adam(discriminator.parameters(), lr=0.01)
 generator = Generator(k0=0, k1=0, k2=0, k3=0)
-disc_opt = optim.Adam(generator.parameters(), lr=0.01)
+gen_opt = optim.Adam(generator.parameters(), lr=0.01)
 
 train_dataset = dataset.ImageDataset("data/train")
 test_dataset = dataset.ImageDataset("data/test")
