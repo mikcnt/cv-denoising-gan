@@ -63,6 +63,7 @@ class Generator(nn.Module):
         x = self.deconv3(x)
         return x
 
+    # TODO: loss shouldn't be in the model class
     # k0 * Adversarial loss +
     # k1 * Pixel loss +
     # k2 * Feature loss +
