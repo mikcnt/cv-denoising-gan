@@ -1,12 +1,12 @@
 from torch.utils.data import DataLoader
 from torch import optim
 from tqdm import tqdm
+import torch
 import os
 
 import torchvision.transforms as tf
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import models
 from torchvision import transforms
 
 from models import Discriminator, Generator, GeneratorLoss
@@ -29,17 +29,10 @@ SMOOTH_LOSS_FACTOR = 1
 
 
 # Initialize vgg for feature loss
-vgg = models.vgg16(pretrained=True).cuda().features[:3]
 
 # Initialization of models
-discriminator = Discriminator()
-<<<<<<< HEAD
-disc_opt = optim.Adam(discriminator.parameters(), lr=0.01)
-generator = Generator(k0=0, k1=0, k2=0, k3=0)
-gen_opt = optim.Adam(generator.parameters(), lr=0.01)
-=======
 generator = Generator()
->>>>>>> cb554a5553df3c48077afd5b0a8367f0c2cffefd
+discriminator = Discriminator()
 
 # Data
 transform = transforms.Compose([
@@ -57,7 +50,6 @@ gen_opt = optim.Adam(generator.parameters(), lr=GEN_LR)
 
 disc_criterion = nn.BCELoss()
 gen_criterion = GeneratorLoss(
-    vgg,
     DISC_LOSS_FACTOR,
     PIX_LOSS_FACTOR,
     FEAT_LOSS_FACTOR,
@@ -98,10 +90,5 @@ for epoch in range(NUM_EPOCHS):
         "loss": gen_loss,
     }
 
-<<<<<<< HEAD
-    gen_opt.step()
-    gen_opt.zero_grad()
-=======
     torch.save(discriminator_checkpoint, "checkpoints/discriminator")
     torch.save(generator_checkpoint, "checkpoints/generator")
->>>>>>> cb554a5553df3c48077afd5b0a8367f0c2cffefd

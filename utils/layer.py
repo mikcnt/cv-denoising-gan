@@ -2,9 +2,7 @@ import torchvision.transforms as tf
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-def conv_layer(in_ch, out_ch, kernel, activation=nn.LeakyReLU(), stride=1):
-    padding = kernel // 2
+def conv_layer(in_ch, out_ch, kernel, activation=nn.LeakyReLU(), stride=1, padding = None):
     return nn.Sequential(
         nn.Conv2d(in_ch, out_ch, kernel, stride=stride, padding=padding),
         nn.BatchNorm2d(out_ch),
