@@ -45,9 +45,10 @@ class Generator(nn.Module):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
-        x += self.res1(x)
-        x += self.res2(x)
-        x += self.res3(x)
+
+        x = x + self.res1(x)
+        x = x + self.res2(x)
+        x = x + self.res3(x)
 
         x = self.deconv1(x)
         x = self.deconv2(x)
@@ -60,15 +61,6 @@ def shifted(img):
     return pad(img)[:, :, :-1, 1:]
 
 
-def vgg_prediction(vgg_model, img):
-    # model = models.vgg16(pretrained=True, progress=True).cuda().features[:3]
-    return vgg_model(img)
-
-
-# k0 * Adversarial loss +
-# k1 * Pixel loss +
-# feat_loss_factor * Feature loss +
-# k3 * Smooth loss
 class GeneratorLoss(nn.Module):
     def __init__(
         self,
@@ -86,14 +78,13 @@ class GeneratorLoss(nn.Module):
         self.smooth_loss_factor = smooth_loss_factor
 
     def forward(self, disc_loss, y, t):
-        mse = nn.MSELoss()
-        features = lambda x: vgg_prediction(self.vgg_model, x)
+        mse = F.mse_loss
+        features = self.vgg_model
+
         pix_loss = mse(y, t)
-        print('AO 1')
         fea_loss = mse(features(y), features(t))
         smo_loss = mse(shifted(y), y)
-        print('AO 2')
-        
+
         return (
             self.disc_loss_factor * disc_loss
             + self.pix_loss_factor * pix_loss
