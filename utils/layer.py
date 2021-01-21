@@ -13,6 +13,7 @@ def conv_layer(in_ch, out_ch, kernel, activation=nn.LeakyReLU(), stride=1):
 
 
 def res_block(channels, kernel):
+    # TODO: is this an actual residual block?
     return nn.Sequential(
         conv_layer(channels, channels, kernel), conv_layer(channels, channels, kernel)
     )
