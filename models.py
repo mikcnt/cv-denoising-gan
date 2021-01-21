@@ -10,9 +10,9 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
 
-        self.conv1 = conv_layer(3, 48, 4, stride=2)
-        self.conv2 = conv_layer(48, 96, 4, stride=2)
-        self.conv3 = conv_layer(96, 192, 4, stride=2)
+        self.conv1 = conv_layer(3, 48, 4, stride=2, padding=1)
+        self.conv2 = conv_layer(48, 96, 4, stride=2, padding=1)
+        self.conv3 = conv_layer(96, 192, 4, stride=2, padding=1)
         self.conv4 = conv_layer(192, 384, 4)
         self.conv5 = conv_layer(384, 1, 4, activation=nn.Sigmoid())
 
@@ -57,7 +57,7 @@ class Generator(nn.Module):
 
 def shifted(img):
     pad = nn.ZeroPad2d((0, 1, 1, 0))
-    return pad(img)[:-1, 1:]
+    return pad(img)[:, :, :-1, 1:]
 
 
 def vgg_prediction(vgg_model, img):
@@ -88,10 +88,12 @@ class GeneratorLoss(nn.Module):
     def forward(self, disc_loss, y, t):
         mse = nn.MSELoss()
         features = lambda x: vgg_prediction(self.vgg_model, x)
-
         pix_loss = mse(y, t)
+        print('AO 1')
         fea_loss = mse(features(y), features(t))
         smo_loss = mse(shifted(y), y)
+        print('AO 2')
+        
         return (
             self.disc_loss_factor * disc_loss
             + self.pix_loss_factor * pix_loss
