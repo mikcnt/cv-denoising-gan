@@ -40,7 +40,13 @@ def gaussian_noise(img, amount=0.2, calibration=0.05):
 # A class defining the dataset
 class ImageDataset(Dataset):
     def __init__(
-        self, images_folder: list, g_min=0.01, g_max=0.10, p_min=0.3, p_max=0.75
+        self,
+        images_folder: list,
+        g_min=0.01,
+        g_max=0.10,
+        p_min=0.3,
+        p_max=0.75,
+        transform=None,
     ):
         super().__init__()
         files = os.listdir(images_folder)
@@ -49,6 +55,7 @@ class ImageDataset(Dataset):
         self.g_max = g_max
         self.p_min = p_min
         self.p_max = p_max
+        self.transform = transform
 
     # Returns the number of samples, it is used for iteration porpuses
     def __len__(self):
@@ -67,7 +74,11 @@ class ImageDataset(Dataset):
             noisy_image, amount=random.uniform(self.g_min, self.g_max)
         )
 
-        return {
-            "x": cv2.cvtColor(noisy_image, cv2.COLOR_BGR2RGB),
-            "y": cv2.cvtColor(clean_image, cv2.COLOR_BGR2RGB),
-        }
+        noisy_image = cv2.cvtColor(noisy_image, cv2.COLOR_BGR2RGB)
+        clean_image = cv2.cvtColor(clean_image, cv2.COLOR_BGR2RGB)
+
+        if self.transform:
+            noisy_image = self.transform(noisy_image)
+            clean_image = self.transform(clean_image)
+
+        return noisy_image, clean_image
