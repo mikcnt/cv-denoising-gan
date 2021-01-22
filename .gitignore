@@ -1,6 +1,5 @@
 .virtual_documents
 .ipynb_checkpoints
-data
 __pycache__
 .vscode
 small_data
