@@ -14,6 +14,7 @@ from parser import main_parser
 
 
 def main():
+    # Load arguments from the parser
     parser = main_parser()
     args = parser.parse_args()
 
@@ -218,10 +219,10 @@ def main():
             img_grid_fake = torchvision.utils.make_grid(gen_images, nrow=8)
             img_grid_real = torchvision.utils.make_grid(real_images, nrow=8)
             torchvision.utils.save_image(
-                img_grid_fake, "outputs/fake_{}.png".format(epoch)
+                img_grid_fake, "outputs/{}_fake.png".format(str(epoch).zfill(3))
             )
             torchvision.utils.save_image(
-                img_grid_real, "outputs/real_{}.png".format(epoch)
+                img_grid_real, "outputs/{}_real.png".format(str(epoch).zfill(3))
             )
 
 

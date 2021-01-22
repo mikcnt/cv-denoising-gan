@@ -7,6 +7,21 @@ from utils import shifted
 def conv_layer(
     in_ch, out_ch, kernel, activation=nn.LeakyReLU(), stride=1, padding="same"
 ):
+    """Convolutional block, composed by Conv2D, BatchNorm and non-linearity.
+
+    Args:
+        in_ch (int): Number of input channels for the convolution.
+        out_ch (int): Number of output channels for the convolution.
+        kernel (int): Filter size for the convolution.
+        activation (nn.activation, optional): Non-linearity after the convolutional layer.
+                                              Defaults to nn.LeakyReLU().
+        stride (int, optional): Stride used in the convolutional layer. Defaults to 1.
+        padding (str, optional): Zero-padding. If 'same', dimensions are kept.
+                                 Defaults to "same".
+
+    Returns:
+        func: Convolutional block.
+    """
     if padding == "same":
         padding = kernel // 2
     return nn.Sequential(
@@ -17,13 +32,36 @@ def conv_layer(
 
 
 def res_block(channels, kernel):
+    """Residual block, used to keep skip connections.
+    Applies a convolutional layer with non-linearity.
+
+    Args:
+        channels (int): Input and output channels (channels are kept).
+        kernel (int): Filter size for the convolution.
+
+    Returns:
+        func: Residual block.
+    """
     return nn.Sequential(
         conv_layer(channels, channels, kernel), conv_layer(channels, channels, kernel)
     )
 
 
 def deconv_layer(in_ch, out_ch, kernel, new_size=None, activation=nn.LeakyReLU()):
+    """Deconvolutional layer used in the generator. Applies convolution
+    with activation. If `new_size` is given, image is also resized accordingly.
 
+    Args:
+        in_ch (int): Number of input channels for the convolution.
+        out_ch (int): Number of output channels for the convolution.
+        kernel (int): Filter size for the convolution.
+        new_size (int, optional): New size of the image after the resize. Defaults to None.
+        activation (nn.activation, optional): Non-linearity after the convolutional layer.
+                                              Defaults to nn.LeakyReLU().
+
+    Returns:
+        func: Deconvolutional layer.
+    """
     if new_size:
         return nn.Sequential(
             tf.Resize(new_size, interpolation=3),
@@ -83,6 +121,22 @@ class Generator(nn.Module):
 
 
 class GeneratorLoss(nn.Module):
+    """Custom loss for the generator model of the GAN.
+    This loss is composed by the weighted sum of 4 losses:
+    1) Adversarial loss: loss of the discriminator.
+    2) Pixel loss: MSE between generated image and groundtruth.
+    3) Feature loss: MSE between VGG16 Conv2 layer of the generated image
+    and VGG16 of the groundtruth.
+    4) Smooth loss: MSE between generated image and one-unit (left and bottom)
+    copy of the generated image.
+
+    Args:
+        vgg_model (nn.Module): VGG16 pretrained model used to compute feature spaces.
+        disc_loss_factor (float): Weight for the adversarial (discriminator) loss.
+        pix_loss_factor (float): Weight for the pixel loss.
+        feat_loss_factor (float): Weight for the feature loss.
+        smooth_loss_factor (float): Weight for the smooth loss.
+    """
     def __init__(
         self,
         vgg_model,
