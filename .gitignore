@@ -1,6 +1,8 @@
 .virtual_documents
 .ipynb_checkpoints
-data/train/**
-data/test/**
+data
 __pycache__
 .vscode
+small_data
+outputs
+checkpoints
