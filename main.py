@@ -140,6 +140,8 @@ def main():
             print("Generator checkpoint filepath incorrect.")
             return
 
+    saved_images = False
+
     # Fit GAN
     for epoch in range(gen_epoch + 1, NUM_EPOCHS + 1):
         for noise, real in tqdm(
@@ -204,26 +206,37 @@ def main():
         torch.save(discriminator_checkpoint, disc_check_path)
         torch.save(generator_checkpoint, gen_check_path)
 
+        # Save outputs of the generator each epoch
         with torch.no_grad():
-            real_images = []
             gen_images = []
             for test_noise, test_real in test_loader:
                 test_noise = test_noise.to(device)
-                test_real = test_real.to(device)
-                real_images.append(test_real)
                 gen_images.append(gen(test_noise))
 
-            real_images = torch.cat(real_images, 0)
             gen_images = torch.cat(gen_images, 0)
 
             img_grid_fake = torchvision.utils.make_grid(gen_images, nrow=8)
-            img_grid_real = torchvision.utils.make_grid(real_images, nrow=8)
             torchvision.utils.save_image(
                 img_grid_fake, "outputs/{}_fake.png".format(str(epoch).zfill(3))
             )
-            torchvision.utils.save_image(
-                img_grid_real, "outputs/{}_real.png".format(str(epoch).zfill(3))
-            )
+
+        # Save real and noisy image during first epoch
+        if not saved_images:
+            noise_images = []
+            real_images = []
+            for test_noise, test_real in test_loader:
+                real_images.append(test_real)
+                noise_images.append(test_noise)
+            noise_images = torch.cat(noise_images, 0)
+            real_images = torch.cat(real_images, 0)
+
+            img_grid_noise = torchvision.utils.make_grid(noise_images, nrow=8)
+            img_grid_real = torchvision.utils.make_grid(real_images, nrow=8)
+
+            torchvision.utils.save_image(img_grid_noise, "outputs/noise.png")
+            torchvision.utils.save_image(img_grid_real, "outputs/real.png")
+
+            saved_images = True
 
 
 if __name__ == "__main__":

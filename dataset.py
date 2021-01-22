@@ -41,7 +41,7 @@ def gaussian_noise(img, amount=0.2, calibration=0.05):
 class ImageDataset(Dataset):
     def __init__(
         self,
-        images_folder: list,
+        images_folder,
         g_min=0.01,
         g_max=0.10,
         p_min=0.3,
