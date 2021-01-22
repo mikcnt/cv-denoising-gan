@@ -14,17 +14,12 @@ def pepper_noise(img, threshold=0.1, amount=0.5):
     img_l = (
         img_lab[..., 0].reshape(h, w) / 100
     )  # Normalize the luminosity between 0 and 1
-    mask = np.random.rand(h, w)
-    val = np.exp(img_l) / np.exp(img_l).max() + threshold
+    rand_img = np.random.rand(h, w)
+    thresh_img = img_l < threshold
+    probability_mask = rand_img <= amount
+    black_mask = thresh_img & probability_mask
     out = img.copy()
-    amount = amount ** 2
-    if amount < 0.5:
-        amount = amount * 2
-        val = (amount * val) + (1 - amount)
-    else:
-        amount = (2 * amount) - 1
-        val *= 1 - amount
-    out[mask > val, :] = 0
+    out[black_mask, :] = 0
     return out
 
 
@@ -42,10 +37,10 @@ class ImageDataset(Dataset):
     def __init__(
         self,
         images_folder,
-        g_min=0.01,
-        g_max=0.10,
-        p_min=0.3,
-        p_max=0.75,
+        g_min=0.1,
+        g_max=0.2,
+        p_min=0.1,
+        p_max=0.3,
         transform=None,
     ):
         super().__init__()
@@ -68,7 +63,7 @@ class ImageDataset(Dataset):
         clean_image = cv2.imread(image_path)
         noisy_image = clean_image
         noisy_image = pepper_noise(
-            noisy_image, threshold=0.01, amount=random.uniform(self.g_min, self.g_max)
+            noisy_image, threshold=1, amount=random.uniform(self.p_min, self.p_max)
         )
         noisy_image = gaussian_noise(
             noisy_image, amount=random.uniform(self.g_min, self.g_max)

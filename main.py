@@ -62,6 +62,9 @@ def main():
     # Instantiate losses
     disc_loss = {}
     gen_loss = {}
+    
+    test_disc_loss = {}
+    test_gen_loss = {}
 
     # Load data
     transform = torchvision.transforms.Compose(
@@ -109,7 +112,8 @@ def main():
             disc_epoch = checkpoint["epoch"]
             disc.load_state_dict(checkpoint["model_state_dict"])
             opt_disc.load_state_dict(checkpoint["optimizer_state_dict"])
-            disc_loss = checkpoint["loss"]
+            disc_loss = checkpoint["train_loss"]
+            test_disc_loss = checkpoint["test_loss"]
 
             print("Finished loading discriminator checkpoint.")
             print(
@@ -132,7 +136,8 @@ def main():
             gen_epoch = checkpoint["epoch"]
             gen.load_state_dict(checkpoint["model_state_dict"])
             opt_gen.load_state_dict(checkpoint["optimizer_state_dict"])
-            gen_loss = checkpoint["loss"]
+            gen_loss = checkpoint["train_loss"]
+            test_gen_loss = checkpoint["test_loss"]
 
             print("Finished loading generator checkpoint.")
             print("Resuming training of the generator from epoch {}.".format(gen_epoch))
@@ -144,6 +149,8 @@ def main():
 
     # Fit GAN
     for epoch in range(gen_epoch + 1, NUM_EPOCHS + 1):
+        epoch_d_loss = 0
+        epoch_g_loss = 0
         for noise, real in tqdm(
             train_loader, ncols=70, desc="Epoch {}/{}".format(epoch, NUM_EPOCHS)
         ):
@@ -170,48 +177,45 @@ def main():
             gen.zero_grad()
             loss_gen.backward()
             opt_gen.step()
+            
+            epoch_d_loss += loss_disc.item()
+            epoch_g_loss += loss_gen.item()
+            
 
         # Print losses
         print(
-            f"Epoch [{epoch}/{NUM_EPOCHS}] Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
+            f"Epoch [{epoch}/{NUM_EPOCHS}] Loss D: {epoch_d_loss:.4f}, loss G: {epoch_g_loss:.4f}"
         )
 
         # Update losses dictionaries
-        disc_loss[epoch] = loss_disc
-        gen_loss[epoch] = loss_gen
+        disc_loss[epoch] = epoch_d_loss
+        gen_loss[epoch] = epoch_g_loss
 
-        # Save checkpoints
-        discriminator_checkpoint = {
-            "model_state_dict": disc.state_dict(),
-            "optimizer_state_dict": opt_disc.state_dict(),
-            "epoch": epoch,
-            "loss": disc_loss,
-        }
-
-        generator_checkpoint = {
-            "model_state_dict": gen.state_dict(),
-            "optimizer_state_dict": opt_gen.state_dict(),
-            "epoch": epoch,
-            "loss": gen_loss,
-        }
-
-        disc_check_path = os.path.join(
-            checkpoints_path["discriminator"],
-            "disc-{}.pth".format(str(epoch).zfill(3)),
-        )
-        gen_check_path = os.path.join(
-            checkpoints_path["generator"], "gen-{}.pth".format(str(epoch).zfill(3))
-        )
-
-        torch.save(discriminator_checkpoint, disc_check_path)
-        torch.save(generator_checkpoint, gen_check_path)
-
+        # Validation
+        print('Starting validation for epoch {}.'.format(epoch))
         # Save outputs of the generator each epoch
         with torch.no_grad():
             gen_images = []
+            test_d_loss = 0
+            test_g_loss = 0
             for test_noise, test_real in test_loader:
+                test_real = test_real.to(device)
                 test_noise = test_noise.to(device)
-                gen_images.append(gen(test_noise))
+                test_fake = gen(test_noise)
+                gen_images.append(test_fake)
+                
+                # Losses for test
+                disc_real = disc(test_real).reshape(-1)
+                loss_disc_real = criterion(disc_real, torch.ones_like(disc_real))
+                disc_fake = disc(test_fake.detach()).reshape(-1)
+                loss_disc_fake = criterion(disc_fake, torch.zeros_like(disc_fake))
+                loss_disc = (loss_disc_real + loss_disc_fake) / 2
+                output = disc(test_fake).reshape(-1)
+                adv_loss = criterion(output, torch.ones_like(output))
+                loss_gen = gen_criterion(adv_loss, test_fake, test_real)
+                
+                test_d_loss += loss_disc
+                test_g_loss += loss_gen
 
             gen_images = torch.cat(gen_images, 0)
 
@@ -219,6 +223,10 @@ def main():
             torchvision.utils.save_image(
                 img_grid_fake, "outputs/{}_fake.png".format(str(epoch).zfill(3))
             )
+            
+            test_disc_loss[epoch] = test_d_loss
+            test_gen_loss[epoch] = test_g_loss
+            
 
         # Save real and noisy image during first epoch
         if not saved_images:
@@ -237,6 +245,36 @@ def main():
             torchvision.utils.save_image(img_grid_real, "outputs/real.png")
 
             saved_images = True
+        
+        
+        # Save checkpoints
+        discriminator_checkpoint = {
+            "model_state_dict": disc.state_dict(),
+            "optimizer_state_dict": opt_disc.state_dict(),
+            "epoch": epoch,
+            "train_loss": disc_loss,
+            "test_loss": test_disc_loss,
+        }
+
+        generator_checkpoint = {
+            "model_state_dict": gen.state_dict(),
+            "optimizer_state_dict": opt_gen.state_dict(),
+            "epoch": epoch,
+            "train_loss": gen_loss,
+            "test_loss": test_gen_loss,
+        }
+
+        disc_check_path = os.path.join(
+            checkpoints_path["discriminator"],
+            "disc-{}.pth".format(str(epoch).zfill(3)),
+        )
+        gen_check_path = os.path.join(
+            checkpoints_path["generator"], "gen-{}.pth".format(str(epoch).zfill(3))
+        )
+
+        torch.save(discriminator_checkpoint, disc_check_path)
+        torch.save(generator_checkpoint, gen_check_path)
+
 
 
 if __name__ == "__main__":
