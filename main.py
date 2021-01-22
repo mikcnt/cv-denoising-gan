@@ -1,18 +1,16 @@
-import torch
-from torch.utils.data import DataLoader
-from torch import optim
-from tqdm import tqdm
 import os
-from parser import main_parser
+from tqdm import tqdm
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
+from torch import optim
 import torchvision
-from torchvision import models
-from torchvision import transforms
 
 from models import Discriminator, Generator, GeneratorLoss
-import dataset
+from dataset import ImageDataset
+from parser import main_parser
 
 
 def main():
@@ -54,7 +52,7 @@ def main():
     gen_epoch = 0
 
     # Initialize vgg for feature loss
-    vgg = models.vgg16(pretrained=True).features[:3].to(device)
+    vgg = torchvision.models.vgg16(pretrained=True).features[:3].to(device)
 
     # Initialization of models
     disc = Discriminator().to(device)
@@ -65,14 +63,14 @@ def main():
     gen_loss = {}
 
     # Load data
-    transform = transforms.Compose(
+    transform = torchvision.transforms.Compose(
         [
-            transforms.ToTensor(),
+            torchvision.transforms.ToTensor(),
         ]
     )
 
-    train_dataset = dataset.ImageDataset(TRAIN_DATA_PATH, transform=transform)
-    test_dataset = dataset.ImageDataset(TEST_DATA_PATH, transform=transform)
+    train_dataset = ImageDataset(TRAIN_DATA_PATH, transform=transform)
+    test_dataset = ImageDataset(TEST_DATA_PATH, transform=transform)
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 

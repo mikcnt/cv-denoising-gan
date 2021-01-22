@@ -22,12 +22,6 @@ def main_parser():
         action="store_true",
         help="use this flag to resume the last checkpoint for both generator and discriminator",
     )
-    # parser.add_argument(
-    #     "--evaluate",
-    #     dest="evaluate",
-    #     action="store_true",
-    #     help="use this flag to validate without training",
-    # )
     parser.add_argument(
         "--batch_size", default=2, type=int, help="batch size (default: 2)"
     )
