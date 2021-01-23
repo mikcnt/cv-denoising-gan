@@ -53,9 +53,6 @@ def main():
     # Starting epoch
     gen_epoch = 0
 
-    # Initialize vgg for feature loss
-    vgg = torchvision.models.vgg16(pretrained=True).features[:3].to(device)
-
     # Initialization of models
     disc = Discriminator().to(device)
     gen = Generator().to(device)
@@ -68,11 +65,7 @@ def main():
     test_gen_loss = {}
 
     # Load data
-    transform = torchvision.transforms.Compose(
-        [
-            torchvision.transforms.ToTensor(),
-        ]
-    )
+    transform = torchvision.transforms.ToTensor()
 
     train_dataset = ImageDataset(TRAIN_DATA_PATH, transform=transform)
     test_dataset = ImageDataset(TEST_DATA_PATH, transform=transform)
@@ -85,7 +78,6 @@ def main():
 
     criterion = nn.BCELoss()
     gen_criterion = GeneratorLoss(
-        vgg,
         DISC_LOSS_FACTOR,
         PIX_LOSS_FACTOR,
         FEAT_LOSS_FACTOR,
@@ -131,7 +123,7 @@ def main():
         disc_loss[epoch] = train_d_loss
         gen_loss[epoch] = train_g_loss
 
-        # Validation
+        # Validation and outputs
         print("Starting validation for epoch {}.".format(epoch))
         test_d_loss, test_g_loss = gan.evaluate_epoch(test_loader, epoch)
 
@@ -140,9 +132,7 @@ def main():
 
         # Save checkpoints
         disc_losses = {"train": disc_loss, "test": test_disc_loss}
-
         gen_lossess = {"train": gen_loss, "test": test_gen_loss}
-
         gan.save_checkpoints(epoch, disc_losses, gen_lossess)
 
 
