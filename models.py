@@ -1,8 +1,9 @@
-import torchvision.transforms as tf
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import shifted
 import torchvision
+import torchvision.transforms as tf
+from utils import shifted
 
 
 def conv_layer(
