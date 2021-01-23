@@ -11,7 +11,7 @@ import torchvision
 from models import Discriminator, Generator, GeneratorLoss
 from dataset import ImageDataset
 from parser import main_parser
-from utils import save_checkpoint
+from utils import load_checkpoint, save_checkpoint
 
 
 def main():
@@ -106,45 +106,18 @@ def main():
 
     # Resume specific checkpoints for generator and discriminator
     if DISCRIMINATOR_CHECKPOINT:
-        if os.path.isfile(DISCRIMINATOR_CHECKPOINT):
-            checkpoint = torch.load(
-                DISCRIMINATOR_CHECKPOINT, map_location=lambda storage, loc: storage
-            )
-            disc_epoch = checkpoint["epoch"]
-            disc.load_state_dict(checkpoint["model_state_dict"])
-            opt_disc.load_state_dict(checkpoint["optimizer_state_dict"])
-            disc_loss = checkpoint["train_loss"]
-            test_disc_loss = checkpoint["test_loss"]
-
-            print("Finished loading discriminator checkpoint.")
-            print(
-                "Resuming training of the discriminator from epoch {}.".format(
-                    disc_epoch
-                )
-            )
-        else:
-            print("Discriminator checkpoint filepath incorrect.")
-            return
-
+        disc, opt_disc, disc_epoch, disc_loss, test_disc_loss = load_checkpoint(
+            disc, opt_disc, DISCRIMINATOR_CHECKPOINT
+        )
+        print("Finished loading discriminator checkpoint.")
+        print("Resuming training from epoch {}.".format(disc_epoch))
+        
     if GENERATOR_CHECKPOINT:
-        if os.path.isfile(GENERATOR_CHECKPOINT):
-            print(
-                "Loading checkpoint {} of the generator...".format(GENERATOR_CHECKPOINT)
-            )
-            checkpoint = torch.load(
-                GENERATOR_CHECKPOINT, map_location=lambda storage, loc: storage
-            )
-            gen_epoch = checkpoint["epoch"]
-            gen.load_state_dict(checkpoint["model_state_dict"])
-            opt_gen.load_state_dict(checkpoint["optimizer_state_dict"])
-            gen_loss = checkpoint["train_loss"]
-            test_gen_loss = checkpoint["test_loss"]
-
-            print("Finished loading generator checkpoint.")
-            print("Resuming training of the generator from epoch {}.".format(gen_epoch))
-        else:
-            print("Generator checkpoint filepath incorrect.")
-            return
+        gen, opt_gen, gen_epoch, gen_loss, test_gen_loss = load_checkpoint(
+            gen, opt_gen, GENERATOR_CHECKPOINT
+        )
+        print("Finished loading generator checkpoint.")
+        print("Resuming training from epoch {}.".format(gen_epoch))
 
     saved_images = False
 
