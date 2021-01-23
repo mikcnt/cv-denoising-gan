@@ -63,14 +63,13 @@ class DCGAN(object):
         disc_real = self.disc(real).reshape(-1)
         if self.ones.shape != disc_real.shape:
             self.ones = torch.ones_like(disc_real)
-        print(self.ones.shape)
         loss_disc_real = self.criterion(disc_real, self.ones)
-        
+
         disc_fake = self.disc(fake.detach()).reshape(-1)
         if self.zeros.shape != disc_fake.shape:
-            self.zeros = torch.zeros_like(disc_fake)  
+            self.zeros = torch.zeros_like(disc_fake)
         loss_disc_fake = self.criterion(disc_fake, self.zeros)
-        
+
         loss_disc = (loss_disc_real + loss_disc_fake) / 2
         self.disc.zero_grad()
         loss_disc.backward()
@@ -83,7 +82,7 @@ class DCGAN(object):
         output = self.disc(fake).reshape(-1)
         if self.ones.shape != output.shape:
             self.ones = torch.ones_like(output)
-        
+
         adv_loss = self.criterion(output, self.ones)
         loss_gen = self.gen_criterion(adv_loss, fake, real)
         self.gen.zero_grad()
