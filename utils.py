@@ -116,23 +116,6 @@ class DCGAN(object):
 
         return loss_disc, loss_gen
 
-    # def evaluate_epoch(self, test_loader, epoch):
-    #     self.gen.eval()
-    #     self.disc.eval()
-    #     with torch.no_grad():
-    #         test_d_loss = 0
-    #         test_g_loss = 0
-    #         for test_noise, test_real in test_loader:
-    #             test_real = test_real.to(self.device)
-    #             test_noise = test_noise.to(self.device)
-
-    #             # Losses for test
-    #             loss_disc, loss_gen = self.evaluate_iteration(test_noise, test_real)
-
-    #             test_d_loss += loss_disc.item()
-    #             test_g_loss += loss_gen.item()
-    #     return test_d_loss, test_g_loss
-
     def evaluate_epoch(self, test_loader, epoch):
         noise_path = "outputs/noise.png"
         real_path = "outputs/real.png"
