@@ -143,7 +143,6 @@ class GeneratorLoss(nn.Module):
 
     def __init__(
         self,
-        disc_loss_factor,
         pix_loss_factor,
         feat_loss_factor,
         smooth_loss_factor,
@@ -153,7 +152,6 @@ class GeneratorLoss(nn.Module):
         self.vgg_model = (
             torchvision.models.vgg16(pretrained=True).features[:3].to(device)
         )
-        self.disc_loss_factor = disc_loss_factor
         self.pix_loss_factor = pix_loss_factor
         self.feat_loss_factor = feat_loss_factor
         self.smooth_loss_factor = smooth_loss_factor
@@ -164,7 +162,7 @@ class GeneratorLoss(nn.Module):
     def features(self, x):
         self.vgg_model(x)
 
-    def forward(self, disc_loss, y, t):
+    def forward(self, y, t):
         mse = F.mse_loss
         features = self.vgg_model
 
@@ -173,8 +171,7 @@ class GeneratorLoss(nn.Module):
         smo_loss = mse(shifted(y), y)
 
         return (
-            self.disc_loss_factor * disc_loss
-            + self.pix_loss_factor * pix_loss
+            self.pix_loss_factor * pix_loss
             + self.feat_loss_factor * fea_loss
             + self.smooth_loss_factor * smo_loss
         )
