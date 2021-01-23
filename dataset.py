@@ -27,6 +27,20 @@ def pepper_noise(img, threshold=0.1, amount=0.5):
     out[mask > val, :] = 0
     return out
 
+def pepper_noise2(img, threshold=0.1, amount=0.5):
+    h, w, _ = img.shape
+    img_lab = rgb2lab(img)
+    img_l = (
+        img_lab[..., 0].reshape(h, w) / 100
+    )  # Normalize the luminosity between 0 and 1
+    rand_img = np.random.rand(h, w)
+    thresh_img = img_l < threshold
+    probability_mask = rand_img <= amount
+    black_mask = thresh_img and probability_mask
+    out = img.copy()
+    out[black_mask, :] = 0
+    return out
+
 
 def gaussian_noise(img, amount=0.2, calibration=0.05):
     h, w, ch = img.shape
@@ -41,7 +55,7 @@ def gaussian_noise(img, amount=0.2, calibration=0.05):
 class ImageDataset(Dataset):
     def __init__(
         self,
-        images_folder: list,
+        images_folder,
         g_min=0.01,
         g_max=0.10,
         p_min=0.3,

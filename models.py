@@ -1,10 +1,75 @@
 import torchvision.transforms as tf
 from torchvision import models
 import torch.nn as nn
+import torch
 import torch.nn.functional as F
-from utils.layer import conv_layer
-from utils.layer import res_block
-from utils.layer import deconv_layer
+from utils import shifted
+
+
+def conv_layer(
+    in_ch, out_ch, kernel, activation=nn.LeakyReLU(), stride=1, padding="same"
+):
+    """Convolutional block, composed by Conv2D, BatchNorm and non-linearity.
+
+    Args:
+        in_ch (int): Number of input channels for the convolution.
+        out_ch (int): Number of output channels for the convolution.
+        kernel (int): Filter size for the convolution.
+        activation (nn.activation, optional): Non-linearity after the convolutional layer.
+                                              Defaults to nn.LeakyReLU().
+        stride (int, optional): Stride used in the convolutional layer. Defaults to 1.
+        padding (str, optional): Zero-padding. If 'same', dimensions are kept.
+                                 Defaults to "same".
+
+    Returns:
+        func: Convolutional block.
+    """
+    if padding == "same":
+        padding = kernel // 2
+    return nn.Sequential(
+        nn.Conv2d(in_ch, out_ch, kernel, stride=stride, padding=padding),
+        nn.BatchNorm2d(out_ch),
+        activation,
+    )
+
+
+def res_block(channels, kernel):
+    """Residual block, used to keep skip connections.
+    Applies a convolutional layer with non-linearity.
+
+    Args:
+        channels (int): Input and output channels (channels are kept).
+        kernel (int): Filter size for the convolution.
+
+    Returns:
+        func: Residual block.
+    """
+    return nn.Sequential(
+        conv_layer(channels, channels, kernel), conv_layer(channels, channels, kernel)
+    )
+
+
+def deconv_layer(in_ch, out_ch, kernel, new_size=None, activation=nn.LeakyReLU()):
+    """Deconvolutional layer used in the generator. Applies convolution
+    with activation. If `new_size` is given, image is also resized accordingly.
+
+    Args:
+        in_ch (int): Number of input channels for the convolution.
+        out_ch (int): Number of output channels for the convolution.
+        kernel (int): Filter size for the convolution.
+        new_size (int, optional): New size of the image after the resize. Defaults to None.
+        activation (nn.activation, optional): Non-linearity after the convolutional layer.
+                                              Defaults to nn.LeakyReLU().
+
+    Returns:
+        func: Deconvolutional layer.
+    """
+    if new_size:
+        return nn.Sequential(
+            tf.Resize(new_size, interpolation=3),
+            conv_layer(in_ch, out_ch, kernel, activation),
+        )
+    return conv_layer(in_ch, out_ch, kernel, activation)
 
 
 class Discriminator(nn.Module):
@@ -46,9 +111,10 @@ class Generator(nn.Module):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
-        x += self.res1(x)
-        x += self.res2(x)
-        x += self.res3(x)
+
+        x = x + self.res1(x)
+        x = x + self.res2(x)
+        x = x + self.res3(x)
 
         x = self.deconv1(x)
         x = self.deconv2(x)
@@ -56,37 +122,51 @@ class Generator(nn.Module):
         return x
 
 
-def shifted(img):
-    pad = nn.ZeroPad2d((0, 1, 1, 0))
-    return pad(img)[:, :, :-1, 1:]
-
 class GeneratorLoss(nn.Module):
+    """Custom loss for the generator model of the GAN.
+    This loss is composed by the weighted sum of 4 losses:
+    1) Adversarial loss: loss of the discriminator.
+    2) Pixel loss: MSE between generated image and groundtruth.
+    3) Feature loss: MSE between VGG16 Conv2 layer of the generated image
+    and VGG16 of the groundtruth.
+    4) Smooth loss: MSE between generated image and one-unit (left and bottom)
+    copy of the generated image.
+
+    Args:
+        vgg_model (nn.Module): VGG16 pretrained model used to compute feature spaces.
+        disc_loss_factor (float): Weight for the adversarial (discriminator) loss.
+        pix_loss_factor (float): Weight for the pixel loss.
+        feat_loss_factor (float): Weight for the feature loss.
+        smooth_loss_factor (float): Weight for the smooth loss.
+    """
     def __init__(
         self,
         disc_loss_factor,
         pix_loss_factor,
         feat_loss_factor,
         smooth_loss_factor,
-        vgg_model = models.vgg16(pretrained=True).cuda().features[:3]
     ):
         super(GeneratorLoss, self).__init__()
         self.disc_loss_factor = disc_loss_factor
         self.pix_loss_factor = pix_loss_factor
         self.feat_loss_factor = feat_loss_factor
         self.smooth_loss_factor = smooth_loss_factor
+        self.vgg_model = models.vgg16(pretrained=True).features[:3]
+        if torch.cuda.is_available():
+            self.vgg_model = self.vgg_model.cuda()
+
     
     def features(self, x):
         self.vgg_model(x)
 
     def forward(self, disc_loss, y, t):
-        mse = nn.MSELoss()
+        mse = F.mse_loss
+        features = self.vgg_model
 
         pix_loss = mse(y, t)
-        fea_loss = mse(self.features(y), self.features(t))
-        print('AO 1')
+        fea_loss = mse(features(y), features(t))
         smo_loss = mse(shifted(y), y)
-        print('AO 2')
-        
+
         return (
             self.disc_loss_factor * disc_loss
             + self.pix_loss_factor * pix_loss
