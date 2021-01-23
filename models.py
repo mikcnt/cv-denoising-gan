@@ -1,8 +1,9 @@
-import torchvision.transforms as tf
-from torchvision import models
-import torch.nn as nn
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
+from torchvision import models
+import torchvision.transforms as tf
 from utils import shifted
 
 
@@ -146,7 +147,9 @@ class GeneratorLoss(nn.Module):
         feat_loss_factor,
         smooth_loss_factor,
     ):
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         super(GeneratorLoss, self).__init__()
+        self.vgg_model = torchvision.models.vgg16(pretrained=True).features[:3].to(device)
         self.disc_loss_factor = disc_loss_factor
         self.pix_loss_factor = pix_loss_factor
         self.feat_loss_factor = feat_loss_factor
