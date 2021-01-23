@@ -5,6 +5,7 @@ import torchvision
 from torchvision import models
 import torchvision.transforms as tf
 
+
 def conv_layer(
     in_ch, out_ch, kernel, activation=nn.LeakyReLU(), stride=1, padding="same"
 ):
