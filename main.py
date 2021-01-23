@@ -85,7 +85,7 @@ def main():
 
             y = model(x)
 
-            model.zero_grad()
+            optimizer.zero_grad()
             loss = criterion(y, t)
             loss.backward()
             optimizer.step()
