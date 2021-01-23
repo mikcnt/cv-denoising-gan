@@ -69,8 +69,8 @@ def main():
 
     train_dataset = ImageDataset(TRAIN_DATA_PATH, transform=transform)
     test_dataset = ImageDataset(TEST_DATA_PATH, transform=transform)
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=12)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=12)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
     # Initialize optimizers and losses
     opt_disc = optim.Adam(disc.parameters(), lr=LEARNING_RATE)
