@@ -73,23 +73,12 @@ def deconv_layer(in_ch, out_ch, kernel, new_size=None, activation=nn.LeakyReLU()
     return conv_layer(in_ch, out_ch, kernel, activation)
 
 
-class Discriminator(nn.Module):
-    def __init__(self):
-        super(Discriminator, self).__init__()
+def maxpool(kernel=2):
+    return nn.MaxPool2d(kernel_size=kernel)
 
-        self.conv1 = conv_layer(3, 48, 4, stride=2, padding=1)
-        self.conv2 = conv_layer(48, 96, 4, stride=2, padding=1)
-        self.conv3 = conv_layer(96, 192, 4, stride=2, padding=1)
-        self.conv4 = conv_layer(192, 384, 4)
-        self.conv5 = conv_layer(384, 1, 4, activation=nn.Sigmoid())
 
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
-        return x
+def upsample(scale_factor=2):
+    return nn.Upsample(scale_factor=scale_factor)
 
 
 class Generator(nn.Module):
@@ -121,6 +110,92 @@ class Generator(nn.Module):
         x = self.deconv2(x)
         x = self.deconv3(x)
         return x
+
+
+class AutoEncoder(nn.Module):
+    def __init__(self):
+        super(AutoEncoder, self).__init__()
+        self.conv0 = conv_layer(in_ch=3, out_ch=48, kernel=3, stride=1)
+        self.conv1 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        self.maxpool0 = maxpool()
+        self.conv2 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        self.maxpool1 = maxpool()
+        self.conv3 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        self.maxpool2 = maxpool()
+        self.conv4 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        self.maxpool3 = maxpool()
+        self.conv5 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        self.maxpool4 = maxpool()
+        self.conv6 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        self.upsample5 = upsample()
+        # concat output of pool4 on channel dimension
+        self.dec_conv5a = conv_layer(in_ch=48, out_ch=96, kernel=3, stride=1)
+        self.dec_conv5b = conv_layer(in_ch=96, out_ch=96, kernel=3, stride=1)
+        self.upsample4 = upsample()
+        # concat output of pool3 on channel dimension
+        self.dec_conv4a = conv_layer(in_ch=144, out_ch=96, kernel=3, stride=1)
+        self.dec_conv4b = conv_layer(in_ch=96, out_ch=96, kernel=3, stride=1)
+        self.upsample3 = upsample()
+        # concat output of pool2 on channel dimension
+        self.dec_conv3a = conv_layer(in_ch=144, out_ch=96, kernel=3, stride=1)
+        self.dec_conv3b = conv_layer(in_ch=96, out_ch=96, kernel=3, stride=1)
+        self.upsample2 = upsample()
+        # concat output of pool1 on channel dimension
+        self.dec_conv2a = conv_layer(in_ch=144, out_ch=96, kernel=3, stride=1)
+        self.dec_conv2b = conv_layer(in_ch=96, out_ch=96, kernel=3, stride=1)
+        self.upsample1 = upsample()
+        # concat output of pool0 on input
+        self.dec_conv1a = conv_layer(in_ch=99, out_ch=64, kernel=3, stride=1)
+        self.dec_conv1b = conv_layer(in_ch=64, out_ch=32, kernel=3, stride=1)
+        self.dec_conv1c = conv_layer(
+            in_ch=32, out_ch=3, kernel=3, stride=1, activation=nn.Identity()
+        )
+
+    def forward(self, x):
+        concats = [x]
+        output = self.conv0(x)
+        output = self.conv1(output)
+        output = self.maxpool0(output)
+        output = self.conv2(output)
+        output = self.maxpool1(output)
+        concats.append(output)
+        output = self.conv3(output)
+        output = self.maxpool2(output)
+        concats.append(output)
+        output = self.conv4(output)
+        output = self.maxpool3(output)
+        concats.append(output)
+        output = self.conv5(output)
+        output = self.maxpool4(output)
+        concats.append(output)
+        output = self.conv6(output)
+        output = self.upsample5(output)
+        output = torch.cat((output, concats.pop()), dim=1)
+        # concat output of pool4 on channel dimension
+        output = self.dec_conv5a(output)
+        output = self.dec_conv5b(output)
+        output = self.upsample4(output)
+        output = torch.cat((output, concats.pop()), dim=1)
+        # concat output of pool3 on channel dimension
+        output = self.dec_conv4a(output)
+        output = self.dec_conv4b(output)
+        output = self.upsample3(output)
+        output = torch.cat((output, concats.pop()), dim=1)
+        # concat output of pool2 on channel dimension
+        output = self.dec_conv3a(output)
+        output = self.dec_conv3b(output)
+        output = self.upsample2(output)
+        output = torch.cat((output, concats.pop()), dim=1)
+        # concat output of pool1 on channel dimension
+        output = self.dec_conv2a(output)
+        output = self.dec_conv2b(output)
+        output = self.upsample1(output)
+        output = torch.cat((output, concats.pop()), dim=1)
+        # concat input
+        output = self.dec_conv1a(output)
+        output = self.dec_conv1b(output)
+        output = self.dec_conv1c(output)
+        return output
 
 
 class GeneratorLoss(nn.Module):

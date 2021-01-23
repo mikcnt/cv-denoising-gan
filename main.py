@@ -68,7 +68,6 @@ def main():
     # Initialize optimizers and losses
     opt_gen = optim.Adam(gen.parameters(), lr=LEARNING_RATE)
 
-    criterion = nn.BCELoss()
     gen_criterion = GeneratorLoss(
         PIX_LOSS_FACTOR,
         FEAT_LOSS_FACTOR,
