@@ -11,6 +11,7 @@ import torchvision
 from models import Discriminator, Generator, GeneratorLoss
 from dataset import ImageDataset
 from parser import main_parser
+from utils import save_checkpoint
 
 
 def main():
@@ -62,7 +63,7 @@ def main():
     # Instantiate losses
     disc_loss = {}
     gen_loss = {}
-    
+
     test_disc_loss = {}
     test_gen_loss = {}
 
@@ -177,10 +178,9 @@ def main():
             gen.zero_grad()
             loss_gen.backward()
             opt_gen.step()
-            
+
             epoch_d_loss += loss_disc.item()
             epoch_g_loss += loss_gen.item()
-            
 
         # Print losses
         print(
@@ -192,7 +192,7 @@ def main():
         gen_loss[epoch] = epoch_g_loss
 
         # Validation
-        print('Starting validation for epoch {}.'.format(epoch))
+        print("Starting validation for epoch {}.".format(epoch))
         # Save outputs of the generator each epoch
         with torch.no_grad():
             gen_images = []
@@ -203,7 +203,7 @@ def main():
                 test_noise = test_noise.to(device)
                 test_fake = gen(test_noise)
                 gen_images.append(test_fake)
-                
+
                 # Losses for test
                 disc_real = disc(test_real).reshape(-1)
                 loss_disc_real = criterion(disc_real, torch.ones_like(disc_real))
@@ -213,7 +213,7 @@ def main():
                 output = disc(test_fake).reshape(-1)
                 adv_loss = criterion(output, torch.ones_like(output))
                 loss_gen = gen_criterion(adv_loss, test_fake, test_real)
-                
+
                 test_d_loss += loss_disc
                 test_g_loss += loss_gen
 
@@ -223,10 +223,9 @@ def main():
             torchvision.utils.save_image(
                 img_grid_fake, "outputs/{}_fake.png".format(str(epoch).zfill(3))
             )
-            
+
             test_disc_loss[epoch] = test_d_loss
             test_gen_loss[epoch] = test_g_loss
-            
 
         # Save real and noisy image during first epoch
         if not saved_images:
@@ -245,24 +244,8 @@ def main():
             torchvision.utils.save_image(img_grid_real, "outputs/real.png")
 
             saved_images = True
-        
-        
-        # Save checkpoints
-        discriminator_checkpoint = {
-            "model_state_dict": disc.state_dict(),
-            "optimizer_state_dict": opt_disc.state_dict(),
-            "epoch": epoch,
-            "train_loss": disc_loss,
-            "test_loss": test_disc_loss,
-        }
 
-        generator_checkpoint = {
-            "model_state_dict": gen.state_dict(),
-            "optimizer_state_dict": opt_gen.state_dict(),
-            "epoch": epoch,
-            "train_loss": gen_loss,
-            "test_loss": test_gen_loss,
-        }
+        # Save checkpoints
 
         disc_check_path = os.path.join(
             checkpoints_path["discriminator"],
@@ -272,9 +255,8 @@ def main():
             checkpoints_path["generator"], "gen-{}.pth".format(str(epoch).zfill(3))
         )
 
-        torch.save(discriminator_checkpoint, disc_check_path)
-        torch.save(generator_checkpoint, gen_check_path)
-
+        save_checkpoint(disc, opt_disc, epoch, disc_loss, test_d_loss, disc_check_path)
+        save_checkpoint(gen, opt_gen, epoch, gen_loss, test_g_loss, gen_check_path)
 
 
 if __name__ == "__main__":
