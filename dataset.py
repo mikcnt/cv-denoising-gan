@@ -63,7 +63,7 @@ class ImageDataset(Dataset):
         clean_image = cv2.imread(image_path)
         noisy_image = clean_image
         noisy_image = pepper_noise(
-            noisy_image, threshold=1, amount=random.uniform(self.p_min, self.p_max)
+            noisy_image, threshold=0.9, amount=random.uniform(self.p_min, self.p_max)
         )
         noisy_image = gaussian_noise(
             noisy_image, amount=random.uniform(self.g_min, self.g_max)

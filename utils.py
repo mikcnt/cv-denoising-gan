@@ -55,13 +55,22 @@ class DCGAN(object):
         self.gen_criterion = gen_criterion
         self.device = device
         self.saved_images = False
+        self.ones = torch.tensor([])
+        self.zeros = torch.tensor([])
 
     def train_disc(self, noise, real):
         fake = self.gen(noise)
         disc_real = self.disc(real).reshape(-1)
-        loss_disc_real = self.criterion(disc_real, torch.ones_like(disc_real))
+        if self.ones.shape != disc_real.shape:
+            self.ones = torch.ones_like(disc_real)
+        print(self.ones.shape)
+        loss_disc_real = self.criterion(disc_real, self.ones)
+        
         disc_fake = self.disc(fake.detach()).reshape(-1)
-        loss_disc_fake = self.criterion(disc_fake, torch.zeros_like(disc_fake))
+        if self.zeros.shape != disc_fake.shape:
+            self.zeros = torch.zeros_like(disc_fake)  
+        loss_disc_fake = self.criterion(disc_fake, self.zeros)
+        
         loss_disc = (loss_disc_real + loss_disc_fake) / 2
         self.disc.zero_grad()
         loss_disc.backward()
@@ -72,7 +81,10 @@ class DCGAN(object):
     def train_gen(self, noise, real):
         fake = self.gen(noise)
         output = self.disc(fake).reshape(-1)
-        adv_loss = self.criterion(output, torch.ones_like(output))
+        if self.ones.shape != output.shape:
+            self.ones = torch.ones_like(output)
+        
+        adv_loss = self.criterion(output, self.ones)
         loss_gen = self.gen_criterion(adv_loss, fake, real)
         self.gen.zero_grad()
         loss_gen.backward()
@@ -106,12 +118,16 @@ class DCGAN(object):
         fake = self.gen(noise)
 
         disc_real = self.disc(real).reshape(-1)
-        loss_disc_real = self.criterion(disc_real, torch.ones_like(disc_real))
+        if self.ones.shape != disc_real.shape:
+            self.ones = torch.ones_like(disc_real)
+        loss_disc_real = self.criterion(disc_real, self.ones)
         disc_fake = self.disc(fake.detach()).reshape(-1)
-        loss_disc_fake = self.criterion(disc_fake, torch.zeros_like(disc_fake))
+        if self.zeros.shape != disc_fake.shape:
+            self.zeros = torch.zeros_like(disc_fake)
+        loss_disc_fake = self.criterion(disc_fake, self.zeros)
         loss_disc = (loss_disc_real + loss_disc_fake) / 2
         output = self.disc(fake).reshape(-1)
-        adv_loss = self.criterion(output, torch.ones_like(output))
+        adv_loss = self.criterion(output, self.ones)
         loss_gen = self.gen_criterion(adv_loss, fake, real)
 
         return loss_disc, loss_gen

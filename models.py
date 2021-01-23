@@ -140,6 +140,7 @@ class GeneratorLoss(nn.Module):
         feat_loss_factor (float): Weight for the feature loss.
         smooth_loss_factor (float): Weight for the smooth loss.
     """
+
     def __init__(
         self,
         disc_loss_factor,
@@ -147,9 +148,11 @@ class GeneratorLoss(nn.Module):
         feat_loss_factor,
         smooth_loss_factor,
     ):
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         super(GeneratorLoss, self).__init__()
-        self.vgg_model = torchvision.models.vgg16(pretrained=True).features[:3].to(device)
+        self.vgg_model = (
+            torchvision.models.vgg16(pretrained=True).features[:3].to(device)
+        )
         self.disc_loss_factor = disc_loss_factor
         self.pix_loss_factor = pix_loss_factor
         self.feat_loss_factor = feat_loss_factor
@@ -158,7 +161,6 @@ class GeneratorLoss(nn.Module):
         if torch.cuda.is_available():
             self.vgg_model = self.vgg_model.cuda()
 
-    
     def features(self, x):
         self.vgg_model(x)
 
