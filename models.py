@@ -4,8 +4,6 @@ import torch.nn.functional as F
 import torchvision
 from torchvision import models
 import torchvision.transforms as tf
-from utils import shifted
-
 
 def conv_layer(
     in_ch, out_ch, kernel, activation=nn.LeakyReLU(), stride=1, padding="same"
@@ -51,8 +49,8 @@ def res_block(channels, kernel):
 
 
 def deconv_layer(in_ch, out_ch, kernel, new_size=None, activation=nn.LeakyReLU()):
-    """Deconvolutional layer used in the generator. Applies convolution
-    with activation. If `new_size` is given, image is also resized accordingly.
+    """Deconvolutional layer. Applies convolutionwith activation.
+    If `new_size` is given, image is also resized accordingly.
 
     Args:
         in_ch (int): Number of input channels for the convolution.
@@ -81,55 +79,38 @@ def upsample(scale_factor=2):
     return nn.Upsample(scale_factor=scale_factor)
 
 
-class Generator(nn.Module):
-    def __init__(self):
-        super(Generator, self).__init__()
-
-        self.conv1 = conv_layer(3, 32, 9)
-        self.conv2 = conv_layer(32, 64, 3)
-        self.conv3 = conv_layer(64, 128, 3)
-
-        self.res1 = res_block(128, 3)
-        self.res2 = res_block(128, 3)
-        self.res3 = res_block(128, 3)
-
-        self.deconv1 = deconv_layer(128, 64, 3, (128, 128))
-        self.deconv2 = deconv_layer(64, 32, 3, (256, 256))
-        self.deconv3 = deconv_layer(32, 3, 3, activation=nn.Tanh())
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-
-        x = x + self.res1(x)
-        x = x + self.res2(x)
-        x = x + self.res3(x)
-
-        x = self.deconv1(x)
-        x = self.deconv2(x)
-        x = self.deconv3(x)
-        return x
-
-
 class AutoEncoder(nn.Module):
     def __init__(self):
         super(AutoEncoder, self).__init__()
+        # 3x256x256
         self.conv0 = conv_layer(in_ch=3, out_ch=48, kernel=3, stride=1)
+        # 48x256x256
         self.conv1 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
-        self.maxpool0 = maxpool()
-        self.conv2 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        # 48x256x256
         self.maxpool1 = maxpool()
-        self.conv3 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        # 48x128x128
+        self.conv2 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        # 48x128x128
         self.maxpool2 = maxpool()
-        self.conv4 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        # 48x64x64
+        self.conv3 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        # 48x64x64
         self.maxpool3 = maxpool()
-        self.conv5 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        # 48x32x32
+        self.conv4 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        # 48x32x32
         self.maxpool4 = maxpool()
+        # 48x16x16
+        self.conv5 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        # 48x16x16
+        self.maxpool5 = maxpool()
+        # 48x8x8
         self.conv6 = conv_layer(in_ch=48, out_ch=48, kernel=3, stride=1)
+        # 48x8x8
         self.upsample5 = upsample()
+        # 48x16x16
         # concat output of pool4 on channel dimension
-        self.dec_conv5a = conv_layer(in_ch=48, out_ch=96, kernel=3, stride=1)
+        self.dec_conv5a = conv_layer(in_ch=96, out_ch=96, kernel=3, stride=1)
         self.dec_conv5b = conv_layer(in_ch=96, out_ch=96, kernel=3, stride=1)
         self.upsample4 = upsample()
         # concat output of pool3 on channel dimension
@@ -155,19 +136,19 @@ class AutoEncoder(nn.Module):
         concats = [x]
         output = self.conv0(x)
         output = self.conv1(output)
-        output = self.maxpool0(output)
-        output = self.conv2(output)
         output = self.maxpool1(output)
         concats.append(output)
-        output = self.conv3(output)
+        output = self.conv2(output)
         output = self.maxpool2(output)
         concats.append(output)
-        output = self.conv4(output)
+        output = self.conv3(output)
         output = self.maxpool3(output)
         concats.append(output)
-        output = self.conv5(output)
+        output = self.conv4(output)
         output = self.maxpool4(output)
         concats.append(output)
+        output = self.conv5(output)
+        output = self.maxpool5(output)
         output = self.conv6(output)
         output = self.upsample5(output)
         output = torch.cat((output, concats.pop()), dim=1)
@@ -198,55 +179,9 @@ class AutoEncoder(nn.Module):
         return output
 
 
-class GeneratorLoss(nn.Module):
-    """Custom loss for the generator model of the GAN.
-    This loss is composed by the weighted sum of 4 losses:
-    1) Adversarial loss: loss of the discriminator.
-    2) Pixel loss: MSE between generated image and groundtruth.
-    3) Feature loss: MSE between VGG16 Conv2 layer of the generated image
-    and VGG16 of the groundtruth.
-    4) Smooth loss: MSE between generated image and one-unit (left and bottom)
-    copy of the generated image.
-
-    Args:
-        vgg_model (nn.Module): VGG16 pretrained model used to compute feature spaces.
-        disc_loss_factor (float): Weight for the adversarial (discriminator) loss.
-        pix_loss_factor (float): Weight for the pixel loss.
-        feat_loss_factor (float): Weight for the feature loss.
-        smooth_loss_factor (float): Weight for the smooth loss.
-    """
-
-    def __init__(
-        self,
-        pix_loss_factor,
-        feat_loss_factor,
-        smooth_loss_factor,
-    ):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        super(GeneratorLoss, self).__init__()
-        self.vgg_model = (
-            torchvision.models.vgg16(pretrained=True).features[:3].to(device)
-        )
-        self.pix_loss_factor = pix_loss_factor
-        self.feat_loss_factor = feat_loss_factor
-        self.smooth_loss_factor = smooth_loss_factor
-        self.vgg_model = models.vgg16(pretrained=True).features[:3]
-        if torch.cuda.is_available():
-            self.vgg_model = self.vgg_model.cuda()
-
-    def features(self, x):
-        self.vgg_model(x)
+class RelativeMSE(nn.Module):
+    def __init__(self):
+        super(RelativeMSE, self).__init__()
 
     def forward(self, y, t):
-        mse = F.mse_loss
-        features = self.vgg_model
-
-        pix_loss = mse(y, t)
-        fea_loss = mse(features(y), features(t))
-        smo_loss = mse(shifted(y), y)
-
-        return (
-            self.pix_loss_factor * pix_loss
-            + self.feat_loss_factor * fea_loss
-            + self.smooth_loss_factor * smo_loss
-        )
+        return torch.mean((y - t) ** 2 / ((y + 0.001) ** 2))

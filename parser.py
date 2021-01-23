@@ -5,22 +5,16 @@ def main_parser():
     # Parse arguments and prepare program
     parser = argparse.ArgumentParser(description="Arguments parser")
     parser.add_argument(
-        "--discriminator_checkpoint",
+        "--model_checkpoint",
         default="",
         type=str,
-        help="path to .pth file checkpoint of the generator (default: none)",
-    )
-    parser.add_argument(
-        "--generator_checkpoint",
-        default="",
-        type=str,
-        help="path to .pth file checkpoint of the discriminator (default: none)",
+        help="path to .pth file checkpoint of the model (default: none)",
     )
     parser.add_argument(
         "--resume_last",
         dest="resume_last",
         action="store_true",
-        help="use this flag to resume the last checkpoint for both generator and discriminator",
+        help="use this flag to resume the last checkpoint of the model",
     )
     parser.add_argument(
         "--batch_size", default=2, type=int, help="batch size (default: 2)"
