@@ -37,10 +37,10 @@ class ImageDataset(Dataset):
     def __init__(
         self,
         images_folder,
-        g_min=0.1,
-        g_max=0.2,
+        g_min=0.08,
+        g_max=0.15,
         p_min=0.1,
-        p_max=0.3,
+        p_max=0.2,
         transform=None,
     ):
         super().__init__()
@@ -63,7 +63,7 @@ class ImageDataset(Dataset):
         clean_image = cv2.imread(image_path)
         noisy_image = clean_image
         noisy_image = pepper_noise(
-            noisy_image, threshold=0.9, amount=random.uniform(self.p_min, self.p_max)
+            noisy_image, threshold=0.5, amount=random.uniform(self.p_min, self.p_max)
         )
         noisy_image = gaussian_noise(
             noisy_image, amount=random.uniform(self.g_min, self.g_max)
