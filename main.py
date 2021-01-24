@@ -79,7 +79,7 @@ def main():
         model.train()
         train_loss = 0
         test_loss = 0
-        for x, t in tqdm(train_loader):
+        for x, t in tqdm(train_loader, ncols=70, desc="Epoch {}".format(epoch)):
             x = x.to(device)
             t = t.to(device)
 
