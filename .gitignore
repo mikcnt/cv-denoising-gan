@@ -7,3 +7,4 @@ outputs
 checkpoints
 to_keep
 renamer.py
+coco

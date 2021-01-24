@@ -50,12 +50,29 @@ def main():
     test_losses = {}
 
     # Load data
-    transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToTensor()
-    ])
+    transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
 
-    train_dataset = ImageDataset(TRAIN_DATA_PATH, transform=transform)
-    test_dataset = ImageDataset(TEST_DATA_PATH, transform=transform)
+    g_min = 0.25
+    g_max = 0.3
+    p_min = 0.35
+    p_max = 0.5
+
+    train_dataset = ImageDataset(
+        TRAIN_DATA_PATH,
+        transform=transform,
+        g_min=g_min,
+        g_max=g_max,
+        p_min=p_min,
+        p_max=p_max,
+    )
+    test_dataset = ImageDataset(
+        TEST_DATA_PATH,
+        transform=transform,
+        g_min=g_max,
+        g_max=g_max,
+        p_min=p_max,
+        p_max=p_max,
+    )
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
