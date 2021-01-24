@@ -8,6 +8,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import random
 import cv2
+from math import log
 
 from models import AutoEncoder
 from dataset import pepper_noise
@@ -44,8 +45,8 @@ img = np.array(Image.open(IMG_PATH))
 
 h, w, c = img.shape
 
-new_h = int(h / 64) * 64
-new_w = int(w / 64) * 64
+new_h = 2 ** round(log(h, 2))
+new_w = 2 ** round(log(w, 2))
 
 img = cv2.resize(img, (new_w, new_h))
 
