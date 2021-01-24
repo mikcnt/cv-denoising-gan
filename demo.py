@@ -44,8 +44,8 @@ img = np.array(Image.open(IMG_PATH))
 
 h, w, c = img.shape
 
-new_h = int(h / 64) * 64
-new_w = int(w / 64) * 64
+new_h = int(h / 32) * 32
+new_w = int(w / 32) * 32
 
 img = cv2.resize(img, (new_w, new_h))
 
