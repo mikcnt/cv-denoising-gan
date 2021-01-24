@@ -100,7 +100,7 @@ def main():
             clean_images = []
             gen_images = []
             num_batches = VAL_IMAGES // BATCH_SIZE + 1
-            for batch_idx, x, t in enumerate(test_loader):
+            for batch_idx, (x, t) in enumerate(test_loader):
                 x = x.to(device)
                 t = t.to(device)
                 y = model(x)
