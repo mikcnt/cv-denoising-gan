@@ -51,7 +51,7 @@ def main():
 
     # Load data
     transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToTensor(), torchvision.transforms.Resize((h, w))
+        torchvision.transforms.ToTensor()
     ])
 
     train_dataset = ImageDataset(TRAIN_DATA_PATH, transform=transform)
