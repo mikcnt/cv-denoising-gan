@@ -85,6 +85,7 @@ if MODEL_CHECKPOINT:
         exit()
 
 print(img_tensor.shape)
+gen.eval()
 generated = gen(img_tensor).squeeze()
 print(generated.shape)
 
