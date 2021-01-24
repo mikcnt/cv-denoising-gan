@@ -45,7 +45,7 @@ class ImageDataset(Dataset):
     ):
         super().__init__()
         files = os.listdir(images_folder)
-        self.image_paths = [images_folder + "/" + file for file in files if file.endswith('.jpg')]
+        self.image_paths = [images_folder + "/" + file for file in files if file.endswith(('.jpg', '.png'))]
         self.g_min = g_min
         self.g_max = g_max
         self.p_min = p_min
