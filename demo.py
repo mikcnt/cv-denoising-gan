@@ -44,11 +44,10 @@ img = np.array(Image.open(IMG_PATH))
 
 h, w, c = img.shape
 
-new_h = [2 ** k for k in range(15) if 2 ** k < h][-1]
-new_w = [2 ** k for k in range(15) if 2 ** k < w][-1]
+new_h = int(h / 64) * 64
+new_w = int(w / 64) * 64
 
-
-img = cv2.resize(img, (new_h, new_w))
+img = cv2.resize(img, (new_w, new_h))
 
 g_min=0.08,
 g_max=0.15,
@@ -63,11 +62,11 @@ if NOISE:
         img, amount=g_max
     )
 
-img_tensor = to_tensor(img).unsqueeze(0).to(device)
+img_tensor = to_tensor(img).unsqueeze(0)
 
 
 MODEL_CHECKPOINT = args.model
-gen = AutoEncoder().to(device)
+gen = AutoEncoder()
 
 
 if MODEL_CHECKPOINT:
@@ -86,7 +85,7 @@ if MODEL_CHECKPOINT:
         exit()
 
 print(img_tensor.shape)
-generated = gen(img_tensor).squeeze()#.reshape(3, 256, 256)
+generated = gen(img_tensor).squeeze()
 print(generated.shape)
 
 generated = generated.permute(1, 2, 0).detach().cpu().numpy()
