@@ -26,7 +26,7 @@ def main():
     # Hyperparameters
     RESUME_LAST = args.resume_last
     MODEL_CHECKPOINT = args.model_checkpoint
-
+    h, w = 256, 256
     VAL_IMAGES = 40
     BATCH_SIZE = args.batch_size
     NUM_EPOCHS = args.epochs
@@ -50,7 +50,9 @@ def main():
     test_losses = {}
 
     # Load data
-    transform = torchvision.transforms.ToTensor()
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.Resize((h, w)), torchvision.transforms.ToTensor()
+    ])
 
     train_dataset = ImageDataset(TRAIN_DATA_PATH, transform=transform)
     test_dataset = ImageDataset(TEST_DATA_PATH, transform=transform)
@@ -102,16 +104,14 @@ def main():
                 x = x.to(device)
                 t = t.to(device)
                 y = model(x)
-                
+
                 loss = criterion(y, t)
                 test_loss += loss.item()
-                
+
                 if batch_idx < num_batches:
                     noise_images.append(x)
                     clean_images.append(t)
                     gen_images.append(y)
-
-
 
         train_losses[epoch] = train_loss
         test_losses[epoch] = test_loss
