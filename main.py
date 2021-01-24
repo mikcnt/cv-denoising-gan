@@ -59,7 +59,7 @@ def main():
     # Initialize optimizers and losses
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-    criterion = RelativeMSE()
+    criterion = nn.MSELoss()
 
     # Resume last checkpoints
     if RESUME_LAST:
@@ -130,7 +130,7 @@ def main():
         torchvision.utils.save_image(img_grid_clean, real_path)
         torchvision.utils.save_image(img_grid_gen, gen_path)
 
-        check_path = "checkpoints/{}.pth".format(epoch)
+        check_path = "checkpoints/{}.pth".format(str(epoch).zfill(3))
 
         save_checkpoint(model, optimizer, epoch, train_losses, test_losses, check_path)
 
