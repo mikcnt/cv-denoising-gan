@@ -27,6 +27,7 @@ def main():
     RESUME_LAST = args.resume_last
     MODEL_CHECKPOINT = args.model_checkpoint
 
+    VAL_IMAGES = 40
     BATCH_SIZE = args.batch_size
     NUM_EPOCHS = args.epochs
     LEARNING_RATE = args.learning_rate
@@ -96,18 +97,21 @@ def main():
             noise_images = []
             clean_images = []
             gen_images = []
-            for x, t in test_loader:
+            num_batches = VAL_IMAGES // BATCH_SIZE + 1
+            for batch_idx, x, t in enumerate(test_loader):
                 x = x.to(device)
                 t = t.to(device)
                 y = model(x)
-
-                noise_images.append(x)
-                clean_images.append(t)
-                gen_images.append(y)
-
+                
                 loss = criterion(y, t)
-
                 test_loss += loss.item()
+                
+                if batch_idx < num_batches:
+                    noise_images.append(x)
+                    clean_images.append(t)
+                    gen_images.append(y)
+
+
 
         train_losses[epoch] = train_loss
         test_losses[epoch] = test_loss
@@ -118,9 +122,9 @@ def main():
         real_path = "outputs/real.png"
         gen_path = "outputs/{}_fake.png".format(str(epoch).zfill(3))
 
-        noise_images = torch.cat(noise_images, dim=0)
-        clean_images = torch.cat(clean_images, dim=0)
-        gen_images = torch.cat(gen_images, dim=0)
+        noise_images = torch.cat(noise_images, dim=0)[:VAL_IMAGES, ...]
+        clean_images = torch.cat(clean_images, dim=0)[:VAL_IMAGES, ...]
+        gen_images = torch.cat(gen_images, dim=0)[:VAL_IMAGES, ...]
 
         img_grid_noise = torchvision.utils.make_grid(noise_images, nrow=8)
         img_grid_clean = torchvision.utils.make_grid(clean_images, nrow=8)

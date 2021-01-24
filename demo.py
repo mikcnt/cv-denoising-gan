@@ -6,47 +6,77 @@ from torch import optim
 import os
 from PIL import Image
 import matplotlib.pyplot as plt
+import random
+import cv2
 
-from models import Generator
+from models import AutoEncoder
+from dataset import pepper_noise
+from dataset import gaussian_noise
 
 parser = argparse.ArgumentParser(description="Arguments parser")
 
+parser.add_argument('--noise', dest='noise', action='store_true',
+                    help='use this flag to add noise to the image before the generation')
+
 parser.add_argument(
-        "--img_path",
+        "--img",
         default="",
         type=str,
         help="img path",
     )
 
 parser.add_argument(
-    "--model_path",
+    "--model",
     default="",
     type=str,
-    help="path for the generator model",
+    help="path for the model",
 )
-
-args = parser.parse_args()
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-IMG_PATH = args.img_path
+args = parser.parse_args()
+
+NOISE = args.noise
+
+IMG_PATH = args.img
 to_tensor = torchvision.transforms.ToTensor()
 img = np.array(Image.open(IMG_PATH))
+
+h, w, c = img.shape
+
+new_h = [2 ** k for k in range(15) if 2 ** k < h][-1]
+new_w = [2 ** k for k in range(15) if 2 ** k < w][-1]
+
+
+img = cv2.resize(img, (new_h, new_w))
+
+g_min=0.08,
+g_max=0.15,
+p_min=0.1,
+p_max=0.2,
+
+if NOISE:
+    img = pepper_noise(
+            img, threshold=0.5, amount=p_max
+        )
+    img = gaussian_noise(
+        img, amount=g_max
+    )
 
 img_tensor = to_tensor(img).unsqueeze(0).to(device)
 
 
-GENERATOR_CHECKPOINT = args.model_path
-gen = Generator().to(device)
+MODEL_CHECKPOINT = args.model
+gen = AutoEncoder().to(device)
 
 
-if GENERATOR_CHECKPOINT:
-    if os.path.isfile(GENERATOR_CHECKPOINT):
+if MODEL_CHECKPOINT:
+    if os.path.isfile(MODEL_CHECKPOINT):
         print(
-            "Loading checkpoint {} of the generator...".format(GENERATOR_CHECKPOINT)
+            "Loading checkpoint {} of the generator...".format(MODEL_CHECKPOINT)
         )
         checkpoint = torch.load(
-            GENERATOR_CHECKPOINT, map_location=lambda storage, loc: storage
+            MODEL_CHECKPOINT, map_location=lambda storage, loc: storage
         )
         gen.load_state_dict(checkpoint["model_state_dict"])
 
@@ -55,11 +85,15 @@ if GENERATOR_CHECKPOINT:
         print("Generator checkpoint filepath incorrect.")
         exit()
 
-
-generated = gen(img_tensor).reshape(3, 256, 256)
+print(img_tensor.shape)
+generated = gen(img_tensor).squeeze()#.reshape(3, 256, 256)
 print(generated.shape)
 
 generated = generated.permute(1, 2, 0).detach().cpu().numpy()
+
+plt.figure()
+plt.imshow(img)
+plt.show()
 
 plt.figure()
 plt.imshow(generated)
