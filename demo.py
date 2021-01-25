@@ -11,8 +11,7 @@ import cv2
 from math import log
 
 from models import AutoEncoder
-from dataset import pepper_noise
-from dataset import gaussian_noise
+from utils import noise
 
 parser = argparse.ArgumentParser(description="Arguments parser")
 
@@ -56,10 +55,10 @@ p_min=0.1,
 p_max=0.2,
 
 if NOISE:
-    img = pepper_noise(
+    img = noise.pepper(
             img, threshold=0.5, amount=p_max
         )
-    img = gaussian_noise(
+    img = noise.gaussian(
         img, amount=g_max
     )
 
