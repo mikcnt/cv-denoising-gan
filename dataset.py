@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 random.seed(42069)
 
 # Utils
-def pepper_noise(img, threshold=0.5, amount=0.5):
+def pepper_noise(img, threshold=1, amount=0.5):
     h, w, _ = img.shape
     img_lab = rgb2lab(img)
     img_l = (
@@ -19,8 +19,12 @@ def pepper_noise(img, threshold=0.5, amount=0.5):
     thresh_img = img_l < threshold
     probability_mask = rand_img <= amount
     black_mask = thresh_img & probability_mask
-    out = img.copy()
-    out[black_mask, :] = 0
+    out = img
+    
+    luminosity = np.random.rand(*out.shape[:-1]) * 0.7
+    
+    luminosity = np.dstack([luminosity] * 3)
+    out[black_mask, :] = np.multiply(out[black_mask, :], luminosity[black_mask, :])
     return out
 
 
