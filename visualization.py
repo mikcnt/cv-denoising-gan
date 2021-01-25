@@ -24,11 +24,11 @@ zero_noise = {"gaussian": 0, "pepper": 0, "salt": 0}
 
 def get_img(filename, img_size=img_size, noises=zero_noise):
     """ Generate png image from jpg """
-    img = np.array(Image.open(filename))  # .resize(img_size)
+    img = np.array(Image.open(filename))
 
-    img = gaussian_noise(img, amount=noises["gaussian"])
     img = pepper_noise(img, amount=noises["pepper"])
     img = salt_noise(img, amount=noises["salt"])
+    img = gaussian_noise(img, amount=noises["gaussian"])
     return img
 
 
