@@ -23,6 +23,17 @@ def pepper_noise(img, threshold=0.1, amount=0.5):
     out[black_mask, :] = 0
     return out
 
+
+def salt_noise(img, amount=0.5):
+    h, w, _ = img.shape
+    rand_img = np.random.rand(h, w)
+    probability_mask = rand_img <= amount
+    white_mask = probability_mask
+    out = img.copy()
+    out[white_mask, :] = 255
+    return out
+
+
 def gaussian_noise(img, amount=0.2, calibration=0.05):
     h, w, ch = img.shape
     noise = np.random.normal(0, amount, (h, w, ch)) - calibration
@@ -41,15 +52,23 @@ class ImageDataset(Dataset):
         g_max=0.15,
         p_min=0.1,
         p_max=0.2,
+        s_min=0.1,
+        s_max=0.2,
         transform=None,
     ):
         super().__init__()
         files = os.listdir(images_folder)
-        self.image_paths = [images_folder + "/" + file for file in files if file.endswith(('.jpg', '.png'))]
+        self.image_paths = [
+            images_folder + "/" + file
+            for file in files
+            if file.endswith((".jpg", ".png"))
+        ]
         self.g_min = g_min
         self.g_max = g_max
         self.p_min = p_min
         self.p_max = p_max
+        self.s_min = s_min
+        self.s_max = s_max
         self.transform = transform
 
     # Returns the number of samples, it is used for iteration porpuses
@@ -64,6 +83,9 @@ class ImageDataset(Dataset):
         noisy_image = clean_image
         noisy_image = pepper_noise(
             noisy_image, threshold=0.5, amount=random.uniform(self.p_min, self.p_max)
+        )
+        noisy_image = salt_noise(
+            noisy_image, amount=random.uniform(self.s_min, self.s_max)
         )
         noisy_image = gaussian_noise(
             noisy_image, amount=random.uniform(self.g_min, self.g_max)
