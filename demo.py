@@ -12,6 +12,8 @@ import cv2
 from models import AutoEncoder
 from dataset import pepper_noise
 from dataset import gaussian_noise
+from dataset import salt_noise
+
 
 parser = argparse.ArgumentParser(description="Arguments parser")
 
@@ -49,14 +51,19 @@ new_w = int(w / 32) * 32
 
 img = cv2.resize(img, (new_w, new_h))
 
-g_min=0.08,
-g_max=0.15,
-p_min=0.1,
-p_max=0.2,
+g_min = 0.05
+g_max = 0.08
+p_min = 0.1
+p_max = 0.2
+s_min = 0.03
+s_max = 0.01
 
 if NOISE:
     img = pepper_noise(
             img, threshold=0.5, amount=p_max
+        )
+    img = salt_noise(
+            img, amount=s_max
         )
     img = gaussian_noise(
         img, amount=g_max
