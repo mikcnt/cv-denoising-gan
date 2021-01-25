@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 random.seed(42069)
 
 # Utils
-def pepper_noise(img, threshold=0.1, amount=0.5):
+def pepper_noise(img, threshold=0.5, amount=0.5):
     h, w, _ = img.shape
     img_lab = rgb2lab(img)
     img_l = (
