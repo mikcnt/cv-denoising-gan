@@ -7,8 +7,25 @@ import torch
 import torch.nn as nn
 import torchvision
 
+
 from models import AutoEncoder
 from dataset import pepper_noise, gaussian_noise, salt_noise
+
+sg.LOOK_AND_FEEL_TABLE["MyNewTheme"] = {
+    "BACKGROUND": "#191f26",
+    "TEXT": "#fff4c9",
+    "INPUT": "#eff5ea",
+    "TEXT_INPUT": "#000000",
+    "SCROLL": "#eff5ea",
+    "BUTTON": ("white", "#709053"),
+    "PROGRESS": ("#01826B", "#D0D0D0"),
+    "BORDER": 1,
+    "SLIDER_DEPTH": 0,
+    "PROGRESS_DEPTH": 0,
+}
+# Switch to use your newly created theme
+sg.theme("MyNewTheme")
+
 
 img_size = (350, 350)
 img_box_size = (800, 350)
@@ -125,7 +142,7 @@ layout = [
     ]
 ]
 
-window = sg.Window("Image Viewer", layout)
+window = sg.Window("Image Viewer", layout, font='Courier 12')
 
 model_loaded = False
 # Run the Event Loop
@@ -158,6 +175,7 @@ while True:
         model = AutoEncoder()
         try:
             model.load_state_dict(checkpoint["model_state_dict"])
+            print(model)
             window["-LOG-"].update("Model correctly loaded.")
         except:
             window["-LOG-"].update("Error loading model.")
