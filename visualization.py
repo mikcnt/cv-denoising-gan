@@ -1,30 +1,24 @@
-import PySimpleGUI as sg
-import numpy as np
 import os
-from models import AutoEncoder
-import torch
-import torchvision
-import torch.nn as nn
+import PySimpleGUI as sg
 from PIL import Image, ImageTk
+import numpy as np
 import cv2
+import torch
+import torch.nn as nn
+import torchvision
 
-from dataset import pepper_noise
-from dataset import gaussian_noise
-from dataset import salt_noise
+from models import AutoEncoder
+from dataset import pepper_noise, gaussian_noise, salt_noise
 
 img_size = (350, 350)
 img_box_size = (800, 350)
 image_orig_str = "-IMAGE_ORIG-"
 image_pred_str = "-IMAGE-PRED-"
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
 
-zero_noise = {"gaussian": 0, "pepper": 0, "salt": 0}
-
-
-def get_img(filename, img_size=img_size, noises=zero_noise):
+def get_img(path, noises):
     """ Generate png image from jpg """
-    img = np.array(Image.open(filename))
+    img = np.array(Image.open(path))
 
     img = pepper_noise(img, amount=noises["pepper"])
     img = salt_noise(img, amount=noises["salt"])
@@ -32,15 +26,8 @@ def get_img(filename, img_size=img_size, noises=zero_noise):
     return img
 
 
-def to_tk(img):
-    img = (img * 255).astype(np.uint8)
-    img = Image.fromarray(img).resize(img_size)
-    return ImageTk.PhotoImage(img)
-
-
-def get_img_prediction(model, img, img_size=img_size):
+def get_img_prediction(model, img):
     to_tensor = torchvision.transforms.ToTensor()
-    # img = np.array(Image.open(pathname))
     h, w, _ = img.shape
 
     new_h = int(h / 32) * 32
@@ -54,9 +41,12 @@ def get_img_prediction(model, img, img_size=img_size):
     generated = generated.permute(1, 2, 0).detach().cpu().numpy()
     generated = np.clip(generated, 0, 1)
     return generated
-    # generated = generated.astype(np.uint8)
-    # img_pred = Image.fromarray(generated).resize(img_size)
-    # return ImageTk.PhotoImage(image=img_pred)
+
+
+def to_tk(img, img_size=img_size):
+    img = (img * 255).astype(np.uint8)
+    img = Image.fromarray(img).resize(img_size)
+    return ImageTk.PhotoImage(img)
 
 
 layout = [[sg.Text("Image Denoiser")]]
@@ -82,36 +72,33 @@ file_list_column = [
         sg.FolderBrowse(),
     ],
     [
-        sg.Text("Gaussian noise"),
+        sg.Text("Gaussian noise\t"),
         sg.Slider(
             range=(0.0, 1.0),
             default_value=0.0,
             resolution=0.01,
             orientation="horizontal",
             key="-GNOISE-",
-            # enable_events=True
         ),
     ],
     [
-        sg.Text("Pepper noise"),
+        sg.Text("Pepper noise\t"),
         sg.Slider(
             range=(0.0, 1.0),
             default_value=0.0,
             resolution=0.01,
             orientation="horizontal",
             key="-PNOISE-",
-            # enable_events=True
         ),
     ],
     [
-        sg.Text("Salt noise"),
+        sg.Text("Salt noise\t"),
         sg.Slider(
             range=(0.0, 1.0),
             default_value=0.0,
             resolution=0.01,
             orientation="horizontal",
             key="-SNOISE-",
-            # enable_events=True
         ),
     ],
     [sg.Listbox(values=[], enable_events=True, size=(40, 20), key="-FILE LIST-")],
@@ -128,7 +115,7 @@ image_viewer_column_pred = [
     [sg.Image(size=img_size, key=image_pred_str)],
 ]
 
-# ----- Full layout -----
+# Full layout
 layout = [
     [
         sg.Column(file_list_column),
@@ -140,6 +127,7 @@ layout = [
 
 window = sg.Window("Image Viewer", layout)
 
+model_loaded = False
 # Run the Event Loop
 while True:
     event, values = window.read()
@@ -162,8 +150,6 @@ while True:
         ]
         window["-FILE LIST-"].update(fnames)
     elif event == "-MODEL-":
-        # a model has been selected
-        # load model
         checkpoint = values["-MODEL-"]
         if checkpoint == "":
             continue
@@ -177,6 +163,7 @@ while True:
             window["-LOG-"].update("Error loading model.")
 
         window["-ACTIVATION-"].update(disabled=False)
+        model_loaded = True
     elif event == "-FILE LIST-":  # A file was chosen from the listbox
         filename = os.path.join(values["-FOLDER-"], values["-FILE LIST-"][0])
 
@@ -190,10 +177,11 @@ while True:
         img_tk = to_tk(img)
         window[image_orig_str].update(data=img_tk)
 
-        img_pred = get_img_prediction(model, img)
-        img_pred_tk = to_tk(img_pred)
+        if model_loaded:
+            img_pred = get_img_prediction(model, img)
+            img_pred_tk = to_tk(img_pred)
 
-        window[image_pred_str].update(data=img_pred_tk)
+            window[image_pred_str].update(data=img_pred_tk)
     elif event == "-ACTIVATION-":
         model.last_activation = (
             nn.Sigmoid() if values["-ACTIVATION-"] == "Sigmoid" else nn.Identity()
