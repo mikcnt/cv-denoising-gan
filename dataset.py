@@ -57,8 +57,8 @@ class ImageDataset(Dataset):
             noisy_image, amount=random.uniform(self.s_min, self.s_max)
         )
 
-        noisy_image = (cv2.cvtColor(noisy_image, cv2.COLOR_BGR2RGB)).astype(np.float32)
-        clean_image = (cv2.cvtColor(clean_image, cv2.COLOR_BGR2RGB)).astype(np.float32)
+        noisy_image = (cv2.cvtcolor(noisy_image, cv2.color_bgr2rgb)).astype(np.float32)
+        clean_image = (cv2.cvtcolor(clean_image, cv2.color_bgr2rgb)).astype(np.float32)
 
         if self.transform:
             noisy_image = self.transform(noisy_image)
