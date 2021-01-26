@@ -8,10 +8,10 @@ from torch.utils.data import DataLoader
 from torch import optim
 import torchvision
 
-from models import Discriminator, Generator, GeneratorLoss
+from models import Discriminator, Generator, GeneratorLoss, DCGAN
 from dataset import ImageDataset
 from parser import main_parser
-from utils import load_checkpoint, save_checkpoint, DCGAN
+from utils.checkpoint import save_checkpoint, load_checkpoint
 
 
 def main():
