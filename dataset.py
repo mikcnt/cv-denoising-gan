@@ -47,9 +47,8 @@ class ImageDataset(Dataset):
     def __getitem__(self, idx):
         # Load RANDOM clean image into memory...
         image_path = self.image_paths[idx]
-        # clean_image = cv2.imread(image_path) / 255
         clean_image = np.array(Image.open(image_path)) / 255
-        noisy_image = clean_image
+        noisy_image = clean_image.copy()
         noisy_image = noise.pepper(
             noisy_image, threshold=0.5, amount=random.uniform(self.p_min, self.p_max)
         )
