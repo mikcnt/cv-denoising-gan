@@ -23,7 +23,7 @@ def conv_layer(
         padding = kernel // 2
     return nn.Sequential(
         nn.Conv2d(in_ch, out_ch, kernel, stride=stride, padding=padding),
-        nn.BatchNorm2d(out_ch),
+        # nn.BatchNorm2d(out_ch),
         activation,
     )
 
