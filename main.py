@@ -10,7 +10,7 @@ import torchvision
 from models import AutoEncoder, RelativeMSE
 from dataset import ImageDataset
 from parser import main_parser
-from utils import load_checkpoint, save_checkpoint
+from utils.checkpoint import load_checkpoint, save_checkpoint
 
 
 def main():

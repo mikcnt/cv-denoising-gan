@@ -9,23 +9,7 @@ import torchvision
 
 
 from models import AutoEncoder
-from dataset import pepper_noise, gaussian_noise, salt_noise
-
-sg.LOOK_AND_FEEL_TABLE["MyNewTheme"] = {
-    "BACKGROUND": "#191f26",
-    "TEXT": "#fff4c9",
-    "INPUT": "#eff5ea",
-    "TEXT_INPUT": "#000000",
-    "SCROLL": "#eff5ea",
-    "BUTTON": ("white", "#709053"),
-    "PROGRESS": ("#01826B", "#D0D0D0"),
-    "BORDER": 1,
-    "SLIDER_DEPTH": 0,
-    "PROGRESS_DEPTH": 0,
-}
-# Switch to use your newly created theme
-sg.theme("MyNewTheme")
-
+from utils import noise
 
 img_size = (350, 350)
 img_box_size = (800, 350)
@@ -35,12 +19,13 @@ image_pred_str = "-IMAGE-PRED-"
 
 def get_img(path, noises):
     """ Generate png image from jpg """
-    img = np.array(Image.open(path))
+    img = np.array(Image.open(path)) / 255
+    # img = cv2.imread(path)
 
-    img = pepper_noise(img, amount=noises["pepper"])
-    img = salt_noise(img, amount=noises["salt"])
-    img = gaussian_noise(img, amount=noises["gaussian"])
-    return img
+    img = noise.pepper(img, amount=noises["pepper"])
+    img = noise.salt(img, amount=noises["salt"])
+    img = noise.gaussian(img, amount=noises["gaussian"])
+    return img.astype(np.float32)
 
 
 def get_img_prediction(model, img):
@@ -175,7 +160,6 @@ while True:
         model = AutoEncoder()
         try:
             model.load_state_dict(checkpoint["model_state_dict"])
-            print(model)
             window["-LOG-"].update("Model correctly loaded.")
         except:
             window["-LOG-"].update("Error loading model.")
