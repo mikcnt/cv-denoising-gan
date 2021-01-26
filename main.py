@@ -50,12 +50,36 @@ def main():
     test_losses = {}
 
     # Load data
-    transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToTensor()
-    ])
+    transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
 
-    train_dataset = ImageDataset(TRAIN_DATA_PATH, transform=transform)
-    test_dataset = ImageDataset(TEST_DATA_PATH, transform=transform)
+    g_min = 0.05
+    g_max = 0.08
+    p_min = 0.1
+    p_max = 0.2
+    s_min = 0.03
+    s_max = 0.06
+
+    train_dataset = ImageDataset(
+        TRAIN_DATA_PATH,
+        transform=transform,
+        g_min=g_min,
+        g_max=g_max,
+        p_min=p_min,
+        p_max=p_max,
+        s_min=s_min,
+        s_max=s_max,
+    )
+    test_dataset = ImageDataset(
+        TEST_DATA_PATH,
+        transform=transform,
+        g_min=g_max,
+        g_max=g_max,
+        p_min=p_max,
+        p_max=p_max,
+        s_min=s_max,
+        s_max=s_max,
+    )
+
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
@@ -80,8 +104,8 @@ def main():
 
     for epoch in range(epoch + 1, NUM_EPOCHS + 1):
         model.train()
-        train_loss = 0
-        test_loss = 0
+        train_loss_epoch = 0
+        test_loss_epoch = 0
         for x, t in tqdm(train_loader, ncols=70, desc="Epoch {}".format(epoch)):
             x = x.to(device)
             t = t.to(device)
@@ -93,30 +117,30 @@ def main():
             loss.backward()
             optimizer.step()
 
-            train_loss += loss.item()
+            train_loss_epoch += loss.item()
 
         with torch.no_grad():
             noise_images = []
             clean_images = []
             gen_images = []
             num_batches = VAL_IMAGES // BATCH_SIZE + 1
-            for batch_idx, (x, t) in enumerate(test_loader):
-                x = x.to(device)
-                t = t.to(device)
-                y = model(x)
+            for batch_idx, (x_test, t_test) in enumerate(test_loader):
+                x_test = x_test.to(device)
+                t_test = t_test.to(device)
+                y_test = model(x_test)
 
-                loss = criterion(y, t)
-                test_loss += loss.item()
+                loss_test = criterion(y_test, t_test)
+                test_loss_epoch += loss_test.item()
 
                 if batch_idx < num_batches:
-                    noise_images.append(x)
-                    clean_images.append(t)
-                    gen_images.append(y)
+                    noise_images.append(x_test)
+                    clean_images.append(t_test)
+                    gen_images.append(y_test)
 
-        train_losses[epoch] = train_loss
-        test_losses[epoch] = test_loss
+        train_losses[epoch] = train_loss_epoch
+        test_losses[epoch] = test_loss_epoch
 
-        print("Train loss = {:.4f} \t Test loss = {:.4f}".format(train_loss, test_loss))
+        print("Train loss = {:.4f} \t Test loss = {:.4f}".format(train_loss_epoch, test_loss_epoch))
 
         noise_path = "outputs/noise.png"
         real_path = "outputs/real.png"

@@ -18,15 +18,23 @@ class ImageDataset(Dataset):
         g_max=0.15,
         p_min=0.1,
         p_max=0.2,
+        s_min=0.1,
+        s_max=0.2,
         transform=None,
     ):
         super().__init__()
         files = os.listdir(images_folder)
-        self.image_paths = [images_folder + "/" + file for file in files if file.endswith(('.jpg', '.png'))]
+        self.image_paths = [
+            images_folder + "/" + file
+            for file in files
+            if file.endswith((".jpg", ".png"))
+        ]
         self.g_min = g_min
         self.g_max = g_max
         self.p_min = p_min
         self.p_max = p_max
+        self.s_min = s_min
+        self.s_max = s_max
         self.transform = transform
 
     # Returns the number of samples, it is used for iteration porpuses
@@ -44,6 +52,9 @@ class ImageDataset(Dataset):
         )
         noisy_image = noise.gaussian(
             noisy_image, amount=random.uniform(self.g_min, self.g_max)
+        )
+        noisy_image = noise.salt(
+            noisy_image, amount=random.uniform(self.s_min, self.s_max)
         )
 
         noisy_image = cv2.cvtColor(noisy_image, cv2.COLOR_BGR2RGB)

@@ -9,12 +9,10 @@ from utils.layer import conv_layer
 from utils.layer import maxpool
 from utils.layer import upsample
 
-
-
-
 class AutoEncoder(nn.Module):
-    def __init__(self):
+    def __init__(self, use_sigmoid=True):
         super(AutoEncoder, self).__init__()
+        self.use_sigmoid = use_sigmoid
         # 3x256x256
         self.conv0 = conv_layer(in_ch=3, out_ch=48, kernel=3, stride=1)
         # 48x256x256
@@ -64,6 +62,7 @@ class AutoEncoder(nn.Module):
         self.dec_conv1c = conv_layer(
             in_ch=32, out_ch=3, kernel=3, stride=1, activation=nn.Identity()
         )
+        self.last_activation = nn.Sigmoid() if self.use_sigmoid else nn.Identity()
 
     def forward(self, x):
         concats = [x]
@@ -109,6 +108,7 @@ class AutoEncoder(nn.Module):
         output = self.dec_conv1a(output)
         output = self.dec_conv1b(output)
         output = self.dec_conv1c(output)
+        output = self.last_activation(output)
         return output
 
 
