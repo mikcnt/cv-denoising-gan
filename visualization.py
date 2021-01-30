@@ -7,8 +7,7 @@ import torch
 import torch.nn as nn
 import torchvision
 
-
-from models import Generator
+from models import AutoEncoder
 import utils.noise as noise
 
 img_size = (350, 350)
@@ -20,7 +19,7 @@ image_pred_str = "-IMAGE-PRED-"
 def get_img(path, noises):
     """ Generate png image from jpg """
     img = np.array(Image.open(path)) / 255
-    img = noise.pepper(img, amount=noises["pepper"])
+    img = noise.pepper(img, amount=noises["pepper"], threshold=1)
     img = noise.salt(img, amount=noises["salt"])
     img = noise.gaussian(img, amount=noises["gaussian"])
     return img.astype(np.float32)
@@ -56,6 +55,15 @@ file_list_column = [
         sg.Text("Select model"),
         sg.In(size=(25, 1), enable_events=True, key="-MODEL-", disabled=False),
         sg.FileBrowse(disabled=False, key="-MODEL_BROWSE-"),
+    ],
+    [
+        sg.Text("Last activation"),
+        sg.DropDown(
+            ["Sigmoid", "Identity"],
+            key="-ACTIVATION-",
+            enable_events=True,
+            disabled=True,
+        ),
     ],
     [
         sg.Text("Image Folder"),
@@ -146,13 +154,14 @@ while True:
             continue
 
         checkpoint = torch.load(checkpoint, map_location=lambda storage, loc: storage)
-        model = Generator()
+        model = AutoEncoder()
         try:
             model.load_state_dict(checkpoint["model_state_dict"])
             window["-LOG-"].update("Model correctly loaded.")
         except:
             window["-LOG-"].update("Error loading model.")
 
+        window["-ACTIVATION-"].update(disabled=False)
         model_loaded = True
     elif event == "-FILE LIST-":  # A file was chosen from the listbox
         filename = os.path.join(values["-FOLDER-"], values["-FILE LIST-"][0])
@@ -172,5 +181,12 @@ while True:
             img_pred_tk = to_tk(img_pred)
 
             window[image_pred_str].update(data=img_pred_tk)
+    elif event == "-ACTIVATION-":
+        model.last_activation = (
+            nn.Sigmoid() if values["-ACTIVATION-"] == "Sigmoid" else nn.Identity()
+        )
+        window["-LOG-"].update(
+            "{} loaded as last activation function.".format(values["-ACTIVATION-"])
+        )
 
 window.close()

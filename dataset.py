@@ -50,7 +50,7 @@ class ImageDataset(Dataset):
         clean_image = np.array(Image.open(image_path)) / 255
         noisy_image = clean_image.copy()
         noisy_image = noise.pepper(
-            noisy_image, threshold=0.5, amount=random.uniform(self.p_min, self.p_max)
+            noisy_image, threshold=1, amount=random.uniform(self.p_min, self.p_max)
         )
         noisy_image = noise.gaussian(
             noisy_image, amount=random.uniform(self.g_min, self.g_max)

@@ -7,7 +7,6 @@ from torchvision import models
 import torchvision.transforms as tf
 
 from utils.layer import conv_layer, deconv_layer, res_block
-from utils.checkpoint import save_checkpoint, load_checkpoint
 
 class Discriminator(nn.Module):
     def __init__(self):
@@ -59,6 +58,17 @@ class Generator(nn.Module):
         return x
 
 
+class DiscriminatorLoss(nn.Module):
+    def __init__(self):
+        super(DiscriminatorLoss, self).__init__()
+        self.criterion = nn.BCELoss()
+
+    def forward(self, prediction_real, ones, prediction_fake, zeros):
+        real_loss = self.criterion(prediction_real, ones)
+        fake_loss = self.criterion(prediction_fake, zeros)
+        return (real_loss + fake_loss) / 2
+
+
 class GeneratorLoss(nn.Module):
     """Custom loss for the generator model of the GAN.
     This loss is composed by the weighted sum of 4 losses:
@@ -93,20 +103,21 @@ class GeneratorLoss(nn.Module):
         self.pix_loss_factor = pix_loss_factor
         self.feat_loss_factor = feat_loss_factor
         self.smooth_loss_factor = smooth_loss_factor
-        self.vgg_model = models.vgg16(pretrained=True).features[:3]
-        if torch.cuda.is_available():
-            self.vgg_model = self.vgg_model.cuda()
+        self.vgg_model = models.vgg16(pretrained=True).features[:3].to(device)
+        
+        self.adversarial = nn.BCELoss()
+        self.mse = nn.MSELoss()
 
     def features(self, x):
         self.vgg_model(x)
 
-    def forward(self, disc_loss, y, t):
-        mse = F.mse_loss
+    def forward(self, fake_predictions, ones, y, t):
         features = self.vgg_model
 
-        pix_loss = mse(y, t)
-        fea_loss = mse(features(y), features(t))
-        smo_loss = mse(shifted(y), y)
+        disc_loss = self.adversarial(fake_predictions, ones)
+        pix_loss = self.mse(y, t)
+        fea_loss = self.mse(features(y), features(t))
+        smo_loss = self.mse(shifted(y), y)
 
         return (
             self.disc_loss_factor * disc_loss

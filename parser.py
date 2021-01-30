@@ -1,6 +1,5 @@
 import argparse
 
-
 def main_parser():
     # Parse arguments and prepare program
     parser = argparse.ArgumentParser(description="Arguments parser")
@@ -29,7 +28,7 @@ def main_parser():
         "--epochs", default=500, type=int, help="number of epochs (default: 500)"
     )
     parser.add_argument(
-        "--learning_rate", default=0.1, type=float, help="learning rate (default 0.1)"
+        "--learning_rate", default=0.0003, type=float, help="learning rate (default 0.0003)"
     )
     parser.add_argument(
         "--data_path",
