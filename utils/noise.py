@@ -2,19 +2,15 @@ from skimage.color import rgb2lab
 import numpy as np
 
 
-def pepper(img, threshold=1, amount=0.5):
+def pepper(img, amount=0.5):
+    _range = 0.4
     h, w, _ = img.shape
-    img_lab = rgb2lab(img)
-    img_l = (
-        img_lab[..., 0].reshape(h, w) / 100
-    )  # Normalize the luminosity between 0 and 1
     rand_img = np.random.rand(h, w)
-    thresh_img = img_l < threshold
     probability_mask = rand_img <= amount
-    black_mask = thresh_img & probability_mask
+    black_mask = probability_mask
     out = img
 
-    luminosity = np.random.rand(*out.shape[:-1]) * 0.4
+    luminosity = np.random.rand(*out.shape[:-1]) * _range
 
     luminosity = np.dstack([luminosity] * 3)
     out[black_mask, :] = np.multiply(out[black_mask, :], luminosity[black_mask, :])
@@ -32,6 +28,7 @@ def salt(img, amount=0.5):
 
     luminosity = np.dstack([luminosity] * 3)
     out[white_mask, :] = out[white_mask, :] + luminosity[white_mask, :]
+    out = np.clip(out, 0, 1)
     return out
 
 

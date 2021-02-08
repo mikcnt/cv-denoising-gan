@@ -41,7 +41,7 @@ class Generator(nn.Module):
 
         self.deconv1 = deconv_layer(128, 64, 3, (128, 128))
         self.deconv2 = deconv_layer(64, 32, 3, (256, 256))
-        self.deconv3 = deconv_layer(32, 3, 3, activation=nn.Sigmoid())
+        self.deconv3 = deconv_layer(32, 3, 3, activation=nn.Tanh())
 
     def forward(self, x):
         x = self.conv1(x)

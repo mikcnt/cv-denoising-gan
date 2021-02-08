@@ -12,7 +12,7 @@ class Output:
         else:
             os.makedirs(self.path, exist_ok=True)
         self.num = num
-        self.overwrite = True
+        self.overwrite = overwrite
         self.imgs = []
 
     def append(self, img):

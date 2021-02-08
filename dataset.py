@@ -25,7 +25,7 @@ class ImageDataset(Dataset):
         transform=None,
     ):
         super().__init__()
-        files = os.listdir(images_folder)
+        files = sorted(os.listdir(images_folder))
         self.image_paths = [
             images_folder + "/" + file
             for file in files
@@ -49,15 +49,16 @@ class ImageDataset(Dataset):
         image_path = self.image_paths[idx]
         clean_image = np.array(Image.open(image_path)) / 255
         noisy_image = clean_image.copy()
-        noisy_image = noise.pepper(
-            noisy_image, threshold=1, amount=random.uniform(self.p_min, self.p_max)
-        )
+
+        # noisy_image = noise.pepper(
+        #     noisy_image, amount=random.uniform(self.p_min, self.p_max)
+        # )
         noisy_image = noise.gaussian(
             noisy_image, amount=random.uniform(self.g_min, self.g_max)
         )
-        noisy_image = noise.salt(
-            noisy_image, amount=random.uniform(self.s_min, self.s_max)
-        )
+        # noisy_image = noise.salt(
+        #     noisy_image, amount=random.uniform(self.s_min, self.s_max)
+        # )
 
         clean_image = clean_image.astype(np.float32)
         noisy_image = noisy_image.astype(np.float32)

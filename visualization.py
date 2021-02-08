@@ -6,13 +6,13 @@ import cv2
 import torch
 import torch.nn as nn
 import torchvision
-
+import glob
 
 from models import Generator
 import utils.noise as noise
 
-img_size = (350, 350)
-img_box_size = (800, 350)
+IMG_SIZE = (350, 350)
+IMG_BOX_SIZE = (800, 350)
 image_orig_str = "-IMAGE_ORIG-"
 image_pred_str = "-IMAGE-PRED-"
 
@@ -20,7 +20,7 @@ image_pred_str = "-IMAGE-PRED-"
 def get_img(path, noises):
     """ Generate png image from jpg """
     img = np.array(Image.open(path)) / 255
-    img = noise.pepper(img, amount=noises["pepper"], threshold=1)
+    img = noise.pepper(img, amount=noises["pepper"])
     img = noise.salt(img, amount=noises["salt"])
     img = noise.gaussian(img, amount=noises["gaussian"])
     return img.astype(np.float32)
@@ -43,7 +43,7 @@ def get_img_prediction(model, img):
     return generated
 
 
-def to_tk(img, img_size=img_size):
+def to_tk(img, img_size=IMG_SIZE):
     img = (img * 255).astype(np.uint8)
     img = Image.fromarray(img).resize(img_size)
     return ImageTk.PhotoImage(img)
@@ -98,12 +98,12 @@ file_list_column = [
 
 image_viewer_column_original = [
     [sg.Text("Input image")],
-    [sg.Image(size=img_size, key=image_orig_str)],
+    [sg.Image(size=IMG_SIZE, key=image_orig_str)],
 ]
 
 image_viewer_column_pred = [
     [sg.Text("Denoised image")],
-    [sg.Image(size=img_size, key=image_pred_str)],
+    [sg.Image(size=IMG_SIZE, key=image_pred_str)],
 ]
 
 # Full layout
@@ -116,7 +116,7 @@ layout = [
     ]
 ]
 
-window = sg.Window("Image Viewer", layout, font="Courier 12")
+window = sg.Window("Image Viewer", layout)
 
 model_loaded = False
 # Run the Event Loop
@@ -129,7 +129,12 @@ while True:
         folder = values["-FOLDER-"]
         try:
             # Get list of files in folder
-            file_list = sorted(os.listdir(folder))
+            # file_list = sorted(os.listdir(folder))
+            types = ("*.png", "*.jpg")
+            file_list = []
+            for files in types:
+                file_list.extend(glob.glob(folder + "/**/" + files, recursive=True))
+            # file_list = glob.glob(folder + '/**/*.jpg', recursive=True)
         except:
             file_list = []
 

@@ -39,6 +39,9 @@ def main():
     FEAT_LOSS_FACTOR = 1
     SMOOTH_LOSS_FACTOR = 0.0001
     
+    USE_DRIVE = args.use_drive
+    cached = False
+    
     # Select device for training (gpu if available)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -67,24 +70,24 @@ def main():
     else:
         id_dis_path = ''
 
+    gen_checkpoint = Checkpoint(gen_path, RESUME_LAST)
+    dis_checkpoint = Checkpoint(dis_path, RESUME_LAST)
+
+    gen = Generator().to(device)
+    disc = Discriminator().to(device)
+
+    dis_opt = optim.Adam(disc.parameters(), lr=LEARNING_RATE, betas=BETAS)
+    gen_opt = optim.Adam(gen.parameters(), lr=LEARNING_RATE, betas=BETAS)
+
+    gen_criterion = GeneratorLoss(DISC_LOSS_FACTOR,
+                                    PIX_LOSS_FACTOR,
+                                    FEAT_LOSS_FACTOR,
+                                    SMOOTH_LOSS_FACTOR)
+    dis_criterion = DiscriminatorLoss()
+
     try:
-        gen_checkpoint = Checkpoint(gen_path, RESUME_LAST)
-        dis_checkpoint = Checkpoint(dis_path, RESUME_LAST)
-
-        generator = Generator().to(device)
-        discriminator = Discriminator().to(device)
-
-        dis_opt = optim.Adam(discriminator.parameters(), lr=LEARNING_RATE, betas=BETAS)
-        gen_opt = optim.Adam(generator.parameters(), lr=LEARNING_RATE, betas=BETAS)
-
-        gen_criterion = GeneratorLoss(DISC_LOSS_FACTOR,
-                                      PIX_LOSS_FACTOR,
-                                      FEAT_LOSS_FACTOR,
-                                      SMOOTH_LOSS_FACTOR)
-        dis_criterion = DiscriminatorLoss()
-
-        generator, gen_opt, epoch, gen_train_losses, gen_test_losses = gen_checkpoint.load(generator, gen_opt, id_gen_path)
-        discriminator, dis_opt, epoch, dis_train_losses, dis_test_losses = dis_checkpoint.load(discriminator, dis_opt, id_dis_path)
+        gen, gen_opt, epoch, gen_train_losses, gen_test_losses = gen_checkpoint.load(gen, gen_opt, id_gen_path)
+        disc, dis_opt, epoch, dis_train_losses, dis_test_losses = dis_checkpoint.load(disc, dis_opt, id_dis_path)
         print("Models loaded from checkpoints.")
         print("Starting training from epoch {}.".format(epoch))
     except RuntimeError:
@@ -98,9 +101,9 @@ def main():
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
 
     # Noise parameters
-    g_min = 0.05
-    g_max = 0.09
-    p_min = 0.75
+    g_min = 0.06
+    g_max = 0.10
+    p_min = 0.075
     p_max = 0.15
     s_min = 0.03
     s_max = 0.05
@@ -130,21 +133,21 @@ def main():
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
     for epoch in range(epoch + 1, NUM_EPOCHS + 1):
-        generator.train()
-        discriminator.train()
+        gen.train()
+        disc.train()
 
         gen_train_loss_epoch = 0
         dis_train_loss_epoch = 0
         gen_test_loss_epoch = 0
         dis_test_loss_epoch = 0
 
-        for noise, clean in tqdm(train_loader, ncols=70, desc="Epoch {}".format(epoch)):
+        for noise, clean in tqdm(train_loader, ncols=70, desc="Epoch {}".format(epoch), leave=False):
             noise = noise.to(device)
             clean = clean.to(device)
 
-            fake = generator(noise)
-            prediction_real = discriminator(clean).reshape(-1)
-            prediction_fake = discriminator(fake.detach()).reshape(-1)
+            fake = gen(noise)
+            prediction_real = disc(clean).reshape(-1)
+            prediction_fake = disc(fake.detach()).reshape(-1)
             ones = torch.ones_like(prediction_real)
             zeros = torch.zeros_like(prediction_fake)
 
@@ -155,7 +158,7 @@ def main():
             dis_opt.step()
 
             # Train generator
-            disc_fake_predictions = discriminator(fake).reshape(-1)
+            disc_fake_predictions = disc(fake).reshape(-1)
             ones_gen = torch.ones_like(disc_fake_predictions)
             gen_loss = gen_criterion(disc_fake_predictions, ones_gen, fake, clean)
             gen_opt.zero_grad()
@@ -166,37 +169,72 @@ def main():
             gen_train_loss_epoch += gen_loss.item()
             dis_train_loss_epoch += dis_loss.item()
 
+        # Evaluation step
+        gen.eval()
+        disc.eval()
         with torch.no_grad():
             num_batches = VAL_IMAGES // BATCH_SIZE + 1
 
-            for batch_idx, (noise_test, clean_test) in enumerate(
-                tqdm(test_loader, ncols=70, desc="Validation")
-            ):
-                noise_test = noise_test.to(device)
-                clean_test = clean_test.to(device)
-                fake_test = generator(noise_test)
-                
-                prediction_real_test = discriminator(clean_test)
-                prediction_fake_test = discriminator(fake_test)
+            if not cached:
+                cache = []
+                for batch_idx, (noise_test, clean_test) in enumerate(
+                    tqdm(test_loader, ncols=70, desc="Validation", leave=False)
+                ):
+                    cache.append((noise_test, clean_test))
+                    noise_test = noise_test.to(device)
+                    clean_test = clean_test.to(device)
+                    fake_test = gen(noise_test)
+                    
+                    prediction_real_test = disc(clean_test)
+                    prediction_fake_test = disc(fake_test)
 
-                ones_test = torch.ones_like(prediction_real_test)
-                zeros_test = torch.zeros_like(prediction_fake_test)
+                    ones_test = torch.ones_like(prediction_real_test)
+                    zeros_test = torch.zeros_like(prediction_fake_test)
 
-                # Train Discriminator
-                dis_loss_test = dis_criterion(prediction_real_test, ones_test, prediction_fake_test, zeros_test)
+                    # Train Discriminator
+                    dis_loss_test = dis_criterion(prediction_real_test, ones_test, prediction_fake_test, zeros_test)
 
-                # Train generator
-                gen_loss_test = gen_criterion(prediction_fake_test, ones_test, noise_test, clean_test)
+                    # Train generator
+                    gen_loss_test = gen_criterion(prediction_fake_test, ones_test, noise_test, clean_test)
 
-                # Update test losses of the epoch
-                gen_test_loss_epoch += gen_loss_test.item()
-                dis_test_loss_epoch += dis_loss_test.item()
+                    # Update test losses of the epoch
+                    gen_test_loss_epoch += gen_loss_test.item()
+                    dis_test_loss_epoch += dis_loss_test.item()
 
-                # Store images for visual feedbacks
-                if batch_idx < num_batches:
-                    noise_output.append(noise_test)
-                    clean_output.append(clean_test)
-                    gen_output.append(fake_test)
+                    # Store images for visual feedbacks
+                    if batch_idx < num_batches:
+                        noise_output.append(noise_test)
+                        clean_output.append(clean_test)
+                        gen_output.append(fake_test)
+            else:
+                for batch_idx, (noise_test, clean_test) in enumerate(
+                    tqdm(cache, ncols=70, desc="Validation", leave=False)
+                ):
+                    noise_test = noise_test.to(device)
+                    clean_test = clean_test.to(device)
+                    fake_test = gen(noise_test)
+                    
+                    prediction_real_test = disc(clean_test)
+                    prediction_fake_test = disc(fake_test)
+
+                    ones_test = torch.ones_like(prediction_real_test)
+                    zeros_test = torch.zeros_like(prediction_fake_test)
+
+                    # Train Discriminator
+                    dis_loss_test = dis_criterion(prediction_real_test, ones_test, prediction_fake_test, zeros_test)
+
+                    # Train generator
+                    gen_loss_test = gen_criterion(prediction_fake_test, ones_test, noise_test, clean_test)
+
+                    # Update test losses of the epoch
+                    gen_test_loss_epoch += gen_loss_test.item()
+                    dis_test_loss_epoch += dis_loss_test.item()
+
+                    # Store images for visual feedbacks
+                    if batch_idx < num_batches:
+                        noise_output.append(noise_test)
+                        clean_output.append(clean_test)
+                        gen_output.append(fake_test)
 
         # Store losses of the epoch in dictionaries
         gen_train_losses[epoch] = gen_train_loss_epoch
@@ -204,6 +242,7 @@ def main():
         gen_test_losses[epoch] = gen_test_loss_epoch
         dis_test_losses[epoch] = dis_test_loss_epoch
 
+        print(f"\n\nEpoch: {epoch}\n")
         print(
             "G. Train loss = {:.4f} \t D. Train loss = {:.4f}".format(
                 gen_train_loss_epoch, dis_train_loss_epoch
@@ -214,15 +253,19 @@ def main():
                 gen_test_loss_epoch, dis_test_loss_epoch
             )
         )
-
+        
         # Save images
         noise_output.save()
         clean_output.save()
         gen_output.save(filename = "{}_fake.png".format(str(epoch).zfill(3)))
         
         # Save checkpoints
-        gen_checkpoint.save(generator, gen_opt, epoch, gen_train_losses, gen_test_losses)
-        dis_checkpoint.save(discriminator, dis_opt, epoch, dis_train_losses, dis_test_losses)
+        if USE_DRIVE:
+            gen_checkpoint.save_drive(gen, gen_opt, epoch, gen_train_losses, gen_test_losses)
+            dis_checkpoint.save_drive(disc, dis_opt, epoch, dis_train_losses, dis_test_losses)
+        else:
+            gen_checkpoint.save(gen, gen_opt, epoch, gen_train_losses, gen_test_losses)
+            dis_checkpoint.save(disc, dis_opt, epoch, dis_train_losses, dis_test_losses)
 
 
 if __name__ == "__main__":
