@@ -37,7 +37,7 @@ def main():
     DISC_LOSS_FACTOR = 0.5
     PIX_LOSS_FACTOR = 1
     FEAT_LOSS_FACTOR = 1
-    SMOOTH_LOSS_FACTOR = 0.0001
+    SMOOTH_LOSS_FACTOR = 1
     
     USE_DRIVE = args.use_drive
     cached = False

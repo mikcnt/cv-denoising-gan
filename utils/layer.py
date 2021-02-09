@@ -3,7 +3,7 @@ import torchvision.transforms as tf
 
 
 def conv_layer(
-    in_ch, out_ch, kernel, activation=nn.LeakyReLU(), stride=1, padding="same"
+    in_ch, out_ch, kernel, activation=nn.LeakyReLU(0.2), stride=1, padding="same"
 ):
     """Convolutional block, composed by Conv2D, BatchNorm and non-linearity.
 

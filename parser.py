@@ -22,13 +22,13 @@ def main_parser():
         help="use this flag to resume the last checkpoint for both generator and discriminator",
     )
     parser.add_argument(
-        "--batch_size", default=8, type=int, help="batch size (default: 2)"
+        "--batch_size", default=8, type=int, help="batch size (default: 8)"
     )
     parser.add_argument(
         "--epochs", default=500, type=int, help="number of epochs (default: 500)"
     )
     parser.add_argument(
-        "--learning_rate", default=0.0003, type=float, help="learning rate (default 0.0003)"
+        "--learning_rate", default=0.002, type=float, help="learning rate (default 0.002)"
     )
     parser.add_argument(
         "--data_path",
