@@ -135,6 +135,7 @@ while True:
             for files in types:
                 file_list.extend(glob.glob(folder + "/**/" + files, recursive=True))
             # file_list = glob.glob(folder + '/**/*.jpg', recursive=True)
+            file_list = sorted(file_list)
         except:
             file_list = []
 
